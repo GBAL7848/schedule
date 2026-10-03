@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=5, user-scalable=yes">
+<title>Графік працівників — календар</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --bg:#f6f7f5; --panel:#ffffff; --ink:#1c2b26; --muted:#6b7a74;
+    --line:#dfe6e2; --accent:#2f6f52; --accent-soft:#e4f0e9;
+    --warn:#b5541f; --warn-soft:#fbe9df;
+    --night:#20242b;
+  }
+  html{-webkit-text-size-adjust:100%}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    padding:20px 12px 60px;
+    padding-top:calc(20px + env(safe-area-inset-top,0px));
+    padding-bottom:calc(60px + env(safe-area-inset-bottom,0px));}
+  .wrap{max-width:920px;margin:0 auto}
+  h1{font-size:clamp(18px,5vw,22px);margin:0 0 14px;font-weight:700}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:14px}
+  label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+  input[type=text],select{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:8px;
+    font-size:16px;background:#fbfdfc;color:var(--ink)}
+  input[type=text]:focus,select:focus{outline:2px solid var(--accent);outline-offset:1px}
+  button{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:10px 16px;
+    font-size:14px;font-weight:600;cursor:pointer}
+  button:hover{background:#255a41}
+  .status{font-size:13px;margin-top:10px;color:var(--muted)}
+  .status.err{color:var(--warn)}
+  .status:empty{margin-top:0}
+  #picker{display:none}
+  .row2{display:flex;gap:12px;flex-wrap:wrap}
+  .row2>div{flex:1;min-width:140px}
+  #calendars{display:none}
+  .cal{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:16px}
+  .cal h2{font-size:16px;margin:0 0 2px;word-break:break-word}
+  .cal .who{font-size:13px;color:var(--muted);margin:0 0 12px}
+  .grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+  .dow{font-size:10px;color:var(--muted);text-align:center;padding-bottom:4px}
+  .cell{aspect-ratio:1/1;border-radius:6px;background:#fafcfb;border:1px solid var(--line);
+    display:flex;flex-direction:column;justify-content:space-between;padding:4px;min-height:0;overflow:hidden}
+  .cell.pad{background:transparent;border:none}
+  .cell .d{font-size:clamp(9px,2.6vw,12px);font-weight:600}
+  .cell .t{font-size:clamp(7px,2.1vw,10px);line-height:1.15;word-break:break-word}
+  .cell.night{background:var(--night);border-color:var(--night)}
+  .cell.night .d, .cell.night .t{color:#f2f2f2}
+  .empty-note{font-size:13px;color:var(--muted)}
+  #sheetPick{display:none;margin-top:10px}
+  .calhead{display:flex;justify-content:space-between;align-items:center;gap:8px}
+  .calhead h2{margin:0}
+  .pinbtn{background:none;border:none;font-size:20px;line-height:1;padding:2px 4px;cursor:pointer;color:var(--accent);flex:0 0 auto}
+  .pinbtn:hover{opacity:.7}
+  .pinned-hdr{font-size:13px;color:var(--muted);font-weight:700;margin:0 0 8px;text-transform:uppercase;letter-spacing:.03em}
+  #clearBtn{display:none;margin-top:8px;background:transparent;color:var(--warn);border:1px solid var(--warn-soft);border-radius:6px;padding:6px 10px;font-size:12px}
+  #clearBtn:hover{background:var(--warn-soft)}
+
+  @media (max-width:480px){
+    body{padding-left:8px;padding-right:8px}
+    .panel,.cal{padding:12px;border-radius:8px}
+    .grid{gap:3px}
+    .cell{border-radius:5px;padding:3px}
+    .row2{gap:8px}
+    .row2>div{min-width:120px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Графік працівників</h1>
+
+  <div class="panel">
+    <label for="xlsxFile">Файл .xlsx</label>
+    <input type="file" id="xlsxFile" accept=".xlsx">
+    <div class="status err" id="fileStatus"></div>
+    <button type="button" id="clearBtn">Очистити збережені дані</button>
+    <div class="row2" id="sheetPick">
+      <div>
+        <select id="sheetSel"></select>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel" id="picker">
+    <div class="row2">
+      <div>
+        <label for="month">Місяць</label>
+        <select id="month"></select>
+      </div>
+      <div>
+        <label for="q">Працівник</label>
+        <input type="text" id="q" list="names" placeholder="Почніть вводити прізвище…" autocomplete="off">
+        <datalist id="names"></datalist>
+      </div>
+    </div>
+  </div>
+
+  <div id="calendars"></div>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+let BLOCKS = [];
+let MONTHS_ORDER = [];
+let WORKBOOK = null;
+let RECORDS = []; // структурований кеш даних парсингу — для подальшого використання в програмі
+let GROUPS = []; // RECORDS, згруповані по (секція, місяць, лікар) — джерело даних для календаря
+const WEEKDAYS = ['пн','вт','ср','чт','пт','сб','нд'];
+const MONTH_NAMES = ['січень','лютий','березень','квітень','травень','червень','липень','серпень','вересень','жовтень','листопад','грудень'];
+const NORMALIZED_GREEN = '#2f6f52'; // будь-який колір комірки, крім чорного, зводиться до цього зеленого
+const TRINITY_PURPLE = '#4c1925'; // колір для комірок зі словом "триніті" (з допуском на одруки)
+const TRINITY_WORD = 'триніті';
+const VACATION_GRAY = '#9e9e9e'; // колір діапазону "відпустка"
+const VACATION_WORD = 'відпустка';
+
+// Відстань Левенштейна — щоб ловити ключові слова навіть з одрукою (пропущена/
+// зайва/переставлена літера), а не лише точний збіг.
+function levenshtein(a, b){
+  const m = a.length, n = b.length;
+  const dp = new Array(n+1);
+  for(let j=0;j<=n;j++) dp[j] = j;
+  for(let i=1;i<=m;i++){
+    let prev = dp[0]; dp[0] = i;
+    for(let j=1;j<=n;j++){
+      const tmp = dp[j];
+      dp[j] = a[i-1]===b[j-1] ? prev : 1 + Math.min(prev, dp[j], dp[j-1]);
+      prev = tmp;
+    }
+  }
+  return dp[n];
+}
+
+// Шукає у тексті комірки слово, схоже на targetWord (без урахування регістру,
+// з допуском до 2 помилок на слово приблизно такої ж довжини).
+function hasFuzzyWord(text, targetWord){
+  if(!text) return false;
+  const words = text.toLowerCase().split(/[^a-zа-яіїєґ']+/i).filter(Boolean);
+  for(const w of words){
+    if(Math.abs(w.length - targetWord.length) > 3) continue;
+    if(levenshtein(w, targetWord) <= 2) return true;
+  }
+  return false;
+}
+function hasTrinityWord(text){ return hasFuzzyWord(text, TRINITY_WORD); }
+function hasVacationWord(text){ return hasFuzzyWord(text, VACATION_WORD); }
+
+// Чорний лишається чорним, білий/прозорий трактується як порожня комірка (bg=null),
+// будь-який інший колір заливки зводиться до єдиного зеленого — щоб календар не
+// строкатів довільними кольорами з файлу, а показував лише "є зміна" / "немає".
+// Застосовується вже ПІСЛЯ порівняння діапазонів "відпустки" (яке працює за
+// оригінальним rawColor) — інакше різні кольори з файлу виглядали б однаково
+// зарано, і діапазон сірого міг "протікати" далі, ніж треба.
+function normalizeColor(hex){
+  if(!hex) return null;
+  return hex.toUpperCase() === '#000000' ? hex : NORMALIZED_GREEN;
+}
+
+// Правило "відпустка": від комірки зі словом "відпустка" (з допуском на одруки)
+// і до останньої підряд комірки, що має той самий ОРИГІНАЛЬНИЙ колір з файлу
+// (rawColor, а не вже зведений до зеленого), — увесь цей діапазон фарбується в
+// сірий. Чорні комірки ніколи не займаються.
+function applyVacationRanges(dayCells){
+  for(let i=0;i<dayCells.length;i++){
+    const cell = dayCells[i];
+    if(cell.locked || !hasVacationWord(cell.text)) continue;
+    const refColor = cell.rawColor;
+    let j = i;
+    while(j < dayCells.length && !dayCells[j].locked && dayCells[j].rawColor === refColor){
+      dayCells[j].color = VACATION_GRAY;
+      j++;
+    }
+    i = j - 1;
+  }
+}
+
+const LS_FILE = 'scheduleApp:fileData';
+const LS_NAME = 'scheduleApp:fileName';
+const LS_SHEET = 'scheduleApp:sheet';
+const LS_MONTH = 'scheduleApp:month';
+const LS_PINNED = 'scheduleApp:pinned';
+const LS_RECORDS = 'scheduleApp:records'; // кеш структурованих даних (лікар/місяць/день/колір/текст)
+let pendingMonth = null;
+const DATA_URL = 'schedule.enc';           // зашифрований файл, який заливає скрипт
+const LS_PASS = 'scheduleApp:pass';        // пароль до графіка (зберігається на цьому пристрої)
+const PBKDF2_ITER = 600000;                // має збігатися зі скриптом
+let lastSyncAt = 0;
+
+function arrayBufferToBase64(buf){
+  let binary = '';
+  const bytes = new Uint8Array(buf);
+  const chunk = 0x8000;
+  for(let i=0;i<bytes.length;i+=chunk){
+    binary += String.fromCharCode.apply(null, bytes.subarray(i, i+chunk));
+  }
+  return btoa(binary);
+}
+function base64ToArrayBuffer(b64){
+  const binary = atob(b64);
+  const bytes = new Uint8Array(binary.length);
+  for(let i=0;i<binary.length;i++) bytes[i] = binary.charCodeAt(i);
+  return bytes.buffer;
+}
+function getPinned(){
+  try{ return JSON.parse(localStorage.getItem(LS_PINNED) || '[]'); } catch(err){ return []; }
+}
+function setPinned(list){
+  try{ localStorage.setItem(LS_PINNED, JSON.stringify(list)); } catch(err){}
+}
+function isPinned(name){
+  return getPinned().includes(name.trim().toLowerCase());
+}
+function togglePinned(name){
+  const key = name.trim().toLowerCase();
+  let list = getPinned();
+  if(list.includes(key)) list = list.filter(x => x !== key);
+  else list.push(key);
+  setPinned(list);
+}
+
+function isWeekdayRow(row){
+  let n = 0;
+  for(const c of row){
+    const v = (c.v||'').toLowerCase();
+    if(WEEKDAYS.some(w => v.startsWith(w))) n++;
+  }
+  return n >= 4;
+}
+function isDateRow(row){
+  let n = 0;
+  for(const c of row){
+    if(/^([1-9]|[12][0-9]|3[01])$/.test(c.v||'')) n++;
+  }
+  return n >= 4;
+}
+function isSectionLabel(label){
+  const t = label.trim();
+  if(!t) return false;
+  if(t.endsWith(':')) return true;
+  if(!/\s/.test(t)) return true;
+  return false;
+}
+function isMonthLabel(label){
+  return MONTH_NAMES.includes(label.trim().toLowerCase());
+}
+
+function buildBlocks(grid){
+  const blocks = [];
+  let i = 0;
+  let currentMonth = null;
+  while(i < grid.length){
+    if(isWeekdayRow(grid[i])){
+      const wdRow = grid[i];
+      const headLabel = (wdRow[0].v||'').trim();
+      if(isMonthLabel(headLabel)) currentMonth = headLabel;
+      let dRow = null, j = i+1;
+      if(j < grid.length && isDateRow(grid[j])){ dRow = grid[j]; j++; }
+      const cols = [];
+      const maxLen = Math.max(wdRow.length, dRow ? dRow.length : 0);
+      for(let c=1;c<maxLen;c++){
+        const day = dRow ? (dRow[c].v||'').trim() : '';
+        const wd = (wdRow[c]?.v||'').trim().toLowerCase().slice(0,2);
+        if(/^\d{1,2}$/.test(day) && WEEKDAYS.includes(wd)) cols.push({idx:c, weekday: wd, day: parseInt(day,10)});
+      }
+      const block = {title:null, month: currentMonth, cols, rows:[]};
+      let k = j;
+      while(k < grid.length && !isWeekdayRow(grid[k])){
+        const r = grid[k];
+        const label = (r[0]?.v||'').trim();
+        if(label){
+          if(isMonthLabel(label)){
+            currentMonth = label;
+          } else if(isSectionLabel(label)){
+            block.rows.push({label, isSection:true, marks:new Map()});
+          } else {
+            const marks = new Map();
+            for(const col of cols){
+              const cell = r[col.idx];
+              if(!cell) continue;
+              const text = (cell.v||'').trim();
+              const bg = cell.bg;
+              if(text || bg) marks.set(col.day, {text, bg});
+            }
+            block.rows.push({label, isSection:false, marks});
+          }
+        }
+        k++;
+      }
+      const firstSection = block.rows.find(x => x.isSection);
+      block.title = firstSection ? firstSection.label.replace(/:$/,'') : 'Графік';
+      if(cols.length) blocks.push(block);
+      i = k;
+    } else i++;
+  }
+  let firstLabeled = blocks.findIndex(b => b.month);
+  if(firstLabeled > 0){ for(let x=0;x<firstLabeled;x++) blocks[x].month = 'Січень'; }
+  else if(firstLabeled === -1 && blocks.length){ for(const b of blocks) b.month = 'Січень'; }
+  return blocks;
+}
+
+// Перетворює BLOCKS (проміжну структуру парсера) у плаский структурований масив
+// записів (по одному на кожну комірку графіка): лікар, місяць, день, день тижня,
+// колір комірки, текст комірки. Це і є кеш даних парсингу — саме RECORDS (через
+// групування у GROUPS, див. groupRecords нижче) тепер малює календар, а BLOCKS
+// далі використовується лише як службовий крок парсингу.
+function buildRecords(blocks, sheetName){
+  const out = [];
+  for(const b of blocks){
+    for(const r of b.rows){
+      if(r.isSection) continue;
+      // 1) базовий колір кожного дня рядка: чорний — пріоритетний і незмінний,
+      //    інакше "триніті" (з допуском на одруки) перезаписує на бордовий.
+      //    rawColor — оригінальний колір із файлу, зберігаємо окремо, бо саме
+      //    за ним (а не за вже зведеним "color") треба порівнювати діапазон "відпустки".
+      const dayCells = b.cols.map(col => {
+        const mark = r.marks.get(col.day) || {text:'', bg:null};
+        const rawColor = mark.bg || null;
+        const isBlack = rawColor && rawColor.toUpperCase() === '#000000';
+        const color = isBlack ? rawColor : (hasTrinityWord(mark.text) ? TRINITY_PURPLE : (normalizeColor(rawColor) || ''));
+        return {day: col.day, weekday: col.weekday, text: mark.text || '', rawColor, color, locked: !!isBlack};
+      });
+      dayCells.sort((a,c) => a.day - c.day);
+      // 2) правило "відпустка": розтягує сірий колір від поміченої комірки на
+      //    весь наступний підряд-діапазон того самого кольору.
+      applyVacationRanges(dayCells);
+      for(const dc of dayCells){
+        out.push({
+          sheet: sheetName,
+          section: b.title || '',
+          month: b.month || '',
+          doctor: r.label.trim(),
+          day: dc.day,
+          weekday: dc.weekday,
+          color: dc.color,
+          text: dc.text
+        });
+      }
+    }
+  }
+  out.sort((a,c) => a.doctor.localeCompare(c.doctor) || a.day - c.day);
+  return out;
+}
+
+// Групує плаский масив записів у "картки" — по одній на пару (секція, місяць,
+// лікар) — саме ці групи тепер малює календар, замість BLOCKS/rows.
+function groupRecords(records){
+  const map = new Map();
+  for(const r of records){
+    const key = r.section + '|' + r.month + '|' + r.doctor.trim().toLowerCase();
+    let g = map.get(key);
+    if(!g){ g = {sheet:r.sheet, section:r.section, month:r.month, doctor:r.doctor, cells:new Map()}; map.set(key, g); }
+    g.cells.set(r.day, {weekday:r.weekday, color:r.color, text:r.text});
+  }
+  return [...map.values()];
+}
+
+function monthSortIndex(m){
+  const idx = MONTH_NAMES.indexOf((m||'').trim().toLowerCase());
+  return idx === -1 ? MONTH_NAMES.length : idx;
+}
+
+function cacheRecords(records){
+  RECORDS = records;
+  GROUPS = groupRecords(records); // те, що фактично рендерить календар
+  window.SCHEDULE_RECORDS = records; // прямий доступ з консолі/подальшого коду цієї сторінки
+  try{ localStorage.setItem(LS_RECORDS, JSON.stringify(records)); } catch(err){ console.warn('Не вдалося закешувати дані:', err); }
+}
+
+// Хелпер для подальшої роботи: вибірка із закешованих даних за потрібними полями.
+// Приклад: getScheduleRecords({doctor:'Іваненко', month:'Вересень'})
+function getScheduleRecords(filter){
+  filter = filter || {};
+  return RECORDS.filter(r =>
+    (!filter.doctor || r.doctor.toLowerCase().includes(filter.doctor.toLowerCase())) &&
+    (!filter.month  || r.month === filter.month) &&
+    (!filter.sheet  || r.sheet === filter.sheet) &&
+    (!filter.day    || r.day === filter.day)
+  );
+}
+window.getScheduleRecords = getScheduleRecords;
+
+function sheetToGrid(ws){
+  if(!ws['!ref']) return [];
+  const range = XLSX.utils.decode_range(ws['!ref']);
+  const grid = [];
+  for(let r=range.s.r; r<=range.e.r; r++){
+    const row = [];
+    for(let c=range.s.c; c<=range.e.c; c++){
+      const addr = XLSX.utils.encode_cell({r,c});
+      const cell = ws[addr];
+      let v = '';
+      if(cell) v = (cell.w !== undefined ? cell.w : (cell.v !== undefined ? String(cell.v) : ''));
+      let bg = null;
+      if(cell && cell.s){
+        const fill = cell.s.fgColor || cell.s.bgColor;
+        if(fill && fill.rgb && !/^(FFFFFFFF|00000000|FFFFFF)$/i.test(fill.rgb)){
+          bg = '#' + fill.rgb.slice(-6); // оригінальний колір з файлу — без зведення до зеленого
+        }
+      }
+      row.push({v: (v||'').toString().trim(), bg});
+    }
+    grid.push(row);
+  }
+  return grid;
+}
+
+function loadSheet(name){
+  const fs = $('#fileStatus');
+  try{
+    const ws = WORKBOOK.Sheets[name];
+    const grid = sheetToGrid(ws);
+    BLOCKS = buildBlocks(grid);
+    if(!BLOCKS.length) throw new Error('Не знайдено розпізнаваної структури графіка на цьому аркуші');
+    cacheRecords(buildRecords(BLOCKS, name));
+    fs.className = 'status';
+    fs.textContent = '';
+    initPicker();
+  } catch(err){
+    fs.className = 'status err';
+    fs.textContent = 'Помилка розбору: ' + err.message;
+  }
+}
+
+$('#xlsxFile').addEventListener('change', async e => {
+  const file = e.target.files[0];
+  const fs = $('#fileStatus');
+  if(!file) return;
+  fs.className = 'status'; fs.textContent = 'Читання файлу…';
+  try{
+    const buf = await file.arrayBuffer();
+    try{
+      localStorage.setItem(LS_FILE, arrayBufferToBase64(buf));
+      localStorage.setItem(LS_NAME, file.name);
+      localStorage.removeItem(LS_SHEET);
+    } catch(err){ console.warn('Не вдалося зберегти файл локально:', err); }
+    WORKBOOK = XLSX.read(buf, {type:'array', cellStyles:true});
+    const sel = $('#sheetSel');
+    sel.innerHTML = '';
+    for(const name of WORKBOOK.SheetNames){
+      const opt = document.createElement('option'); opt.value = name; opt.textContent = name;
+      sel.appendChild(opt);
+    }
+    $('#sheetPick').style.display = WORKBOOK.SheetNames.length > 1 ? 'flex' : 'none';
+    $('#clearBtn').style.display = 'inline-block';
+    loadSheet(WORKBOOK.SheetNames[0]);
+  } catch(err){
+    fs.className = 'status err';
+    fs.textContent = 'Не вдалось прочитати файл: ' + err.message;
+  }
+});
+$('#sheetSel').addEventListener('change', e => {
+  try{ localStorage.setItem(LS_SHEET, e.target.value); } catch(err){}
+  loadSheet(e.target.value);
+});
+$('#clearBtn').addEventListener('click', () => {
+  try{
+    localStorage.removeItem(LS_FILE);
+    localStorage.removeItem(LS_NAME);
+    localStorage.removeItem(LS_SHEET);
+    localStorage.removeItem(LS_MONTH);
+    localStorage.removeItem(LS_PASS);
+  } catch(err){}
+  location.reload();
+});
+
+function initPicker(){
+  // Джерело даних тут і нижче — RECORDS/GROUPS, а не BLOCKS.
+  const monthsSet = new Set(RECORDS.map(r => r.month || 'Без назви'));
+  MONTHS_ORDER = [...monthsSet].sort((a,b) => monthSortIndex(a) - monthSortIndex(b));
+
+  const monthSel = $('#month');
+  monthSel.innerHTML = '';
+  for(const m of MONTHS_ORDER){
+    const opt = document.createElement('option'); opt.value = m; opt.textContent = m;
+    monthSel.appendChild(opt);
+  }
+  monthSel.value = MONTHS_ORDER[MONTHS_ORDER.length - 1];
+  if(pendingMonth && MONTHS_ORDER.includes(pendingMonth)) monthSel.value = pendingMonth;
+  pendingMonth = null;
+
+  const dl = $('#names');
+  dl.innerHTML = '';
+  const seen = new Set();
+  for(const r of RECORDS){
+    if(!seen.has(r.doctor)){
+      seen.add(r.doctor);
+      const opt = document.createElement('option'); opt.value = r.doctor;
+      dl.appendChild(opt);
+    }
+  }
+  $('#picker').style.display = 'block';
+  $('#calendars').style.display = 'block';
+  renderView();
+}
+
+function tryAutoLoad(){
+  const fs = $('#fileStatus');
+  let b64;
+  try{ b64 = localStorage.getItem(LS_FILE); } catch(err){ return; }
+  if(!b64) return;
+  try{
+    const buf = base64ToArrayBuffer(b64);
+    WORKBOOK = XLSX.read(buf, {type:'array', cellStyles:true});
+    const sel = $('#sheetSel');
+    sel.innerHTML = '';
+    for(const name of WORKBOOK.SheetNames){
+      const opt = document.createElement('option'); opt.value = name; opt.textContent = name;
+      sel.appendChild(opt);
+    }
+    $('#sheetPick').style.display = WORKBOOK.SheetNames.length > 1 ? 'flex' : 'none';
+    const savedSheet = localStorage.getItem(LS_SHEET);
+    const sheetToUse = (savedSheet && WORKBOOK.SheetNames.includes(savedSheet)) ? savedSheet : WORKBOOK.SheetNames[0];
+    sel.value = sheetToUse;
+    const fname = localStorage.getItem(LS_NAME) || 'збережений файл';
+    fs.className = 'status';
+    fs.textContent = 'Завантажено збережені дані (' + fname + '). Щоб оновити — оберіть новий файл вище.';
+    $('#clearBtn').style.display = 'inline-block';
+    const savedMonth = localStorage.getItem(LS_MONTH);
+    if(savedMonth) pendingMonth = savedMonth;
+    loadSheet(sheetToUse);
+  } catch(err){
+    fs.className = 'status err';
+    fs.textContent = 'Не вдалося відновити збережені дані: ' + err.message;
+  }
+}
+tryAutoLoad();
+
+/* ---- Автооновлення з сервера ----
+   Скрипт на комп'ютері кладе в репозиторій schedule.enc (AES-GCM, ключ з пароля через PBKDF2).
+   Тут файл завантажується, розшифровується в браузері й підставляється так само,
+   як при ручному виборі .xlsx. Без мережі лишається останній збережений файл. */
+async function decryptSchedule(encBuf, password){
+  const b = new Uint8Array(encBuf);
+  if(b.length < 33 || String.fromCharCode(b[0],b[1],b[2],b[3]) !== 'SCH1') throw new Error('Невірний формат файлу');
+  const salt = b.slice(4,20), iv = b.slice(20,32), data = b.slice(32);
+  const keyMat = await crypto.subtle.importKey('raw', new TextEncoder().encode(password), 'PBKDF2', false, ['deriveKey']);
+  const key = await crypto.subtle.deriveKey({name:'PBKDF2', salt, iterations:PBKDF2_ITER, hash:'SHA-256'}, keyMat, {name:'AES-GCM', length:256}, false, ['decrypt']);
+  return crypto.subtle.decrypt({name:'AES-GCM', iv}, key, data); // хибний пароль → помилка
+}
+
+async function syncFromServer(){
+  const fs = $('#fileStatus');
+  if(!(window.crypto && crypto.subtle)) return;          // потрібен https
+  lastSyncAt = Date.now();
+  let res;
+  try{ res = await fetch(DATA_URL + '?t=' + Date.now(), {cache:'no-store'}); } catch(err){ return; } // офлайн
+  if(!res.ok) return;                                    // файлу ще немає
+  const encBuf = await res.arrayBuffer();
+
+  let pass = null, buf = null, wrong = false;
+  try{ pass = localStorage.getItem(LS_PASS); } catch(err){}
+  for(let attempt = 0; attempt < 3 && !buf; attempt++){
+    if(!pass){
+      pass = prompt(wrong ? 'Невірний пароль. Спробуйте ще раз:' : 'Пароль для графіка:');
+      if(pass === null) return;                          // скасовано — працюємо з кешем
+    }
+    try{
+      buf = await decryptSchedule(encBuf, pass);
+      try{ localStorage.setItem(LS_PASS, pass); } catch(err){}
+    } catch(err){
+      wrong = true; pass = null;
+      try{ localStorage.removeItem(LS_PASS); } catch(e2){}
+    }
+  }
+  if(!buf){
+    fs.className = 'status err';
+    fs.textContent = 'Не вдалося розшифрувати графік: невірний пароль.';
+    return;
+  }
+
+  const b64 = arrayBufferToBase64(buf);
+  let changed = true;
+  try{ changed = b64 !== localStorage.getItem(LS_FILE); } catch(err){}
+  if(changed){
+    try{
+      localStorage.setItem(LS_FILE, b64);
+      localStorage.setItem(LS_NAME, 'Графік (авто)');
+    } catch(err){ console.warn('Не вдалося зберегти файл локально:', err); }
+    tryAutoLoad();
+  }
+  const lm = res.headers.get('last-modified');
+  fs.className = 'status';
+  fs.textContent = 'Дані з сервера' + (lm ? ' · оновлено ' + new Date(lm).toLocaleString('uk-UA') : '') + (changed ? '' : ' (без змін)');
+}
+syncFromServer();
+// при поверненні в застосунок — оновлюємо, якщо минуло більше 10 хвилин
+document.addEventListener('visibilitychange', () => {
+  if(document.visibilityState === 'visible' && Date.now() - lastSyncAt > 10*60*1000) syncFromServer();
+});
+
+// Малює один календар з групи RECORDS (group.cells: day -> {weekday,color,text}).
+function renderCalendar(group){
+  const wrap = document.createElement('div');
+  wrap.className = 'cal';
+
+  const head = document.createElement('div'); head.className = 'calhead';
+  const h = document.createElement('h2'); h.textContent = group.doctor;
+  const pinBtn = document.createElement('button');
+  pinBtn.type = 'button'; pinBtn.className = 'pinbtn';
+  const pinnedNow = isPinned(group.doctor);
+  pinBtn.textContent = pinnedNow ? '★' : '☆';
+  pinBtn.title = pinnedNow ? 'Відкріпити з головної' : 'Закріпити на головній';
+  pinBtn.addEventListener('click', () => { togglePinned(group.doctor); renderView(); });
+  head.appendChild(h); head.appendChild(pinBtn);
+  wrap.appendChild(head);
+
+  const shiftCount = [...group.cells.values()].filter(c => c.text || c.color).length;
+  const who = document.createElement('p'); who.className = 'who';
+  who.textContent = (group.month ? group.month + ' · ' : '') + (group.section || 'Графік') + ' · змін: ' + shiftCount;
+  wrap.appendChild(who);
+
+  const grid = document.createElement('div'); grid.className = 'grid';
+  const dowNames = {пн:'Пн', вт:'Вт', ср:'Ср', чт:'Чт', пт:'Пт', сб:'Сб', нд:'Нд'};
+  for(const w of WEEKDAYS){
+    const d = document.createElement('div'); d.className = 'dow'; d.textContent = dowNames[w];
+    grid.appendChild(d);
+  }
+  const sortedDays = [...group.cells.keys()].sort((a,b)=>a-b);
+  const firstCell = group.cells.get(sortedDays[0]);
+  const leadPad = WEEKDAYS.indexOf(firstCell.weekday);
+  for(let p=0;p<leadPad;p++){
+    const pad = document.createElement('div'); pad.className='cell pad'; grid.appendChild(pad);
+  }
+  for(const day of sortedDays){
+    const cell = document.createElement('div'); cell.className = 'cell';
+    const cellData = group.cells.get(day);
+    if(cellData.color){
+      cell.style.background = cellData.color;
+      cell.style.borderColor = cellData.color;
+    } else if(cellData.text){
+      cell.style.background = 'var(--accent-soft)';
+      cell.style.borderColor = 'var(--accent)';
+    }
+    const dEl = document.createElement('div'); dEl.className = 'd'; dEl.textContent = day;
+    cell.appendChild(dEl);
+    if(cellData.text){
+      const tEl = document.createElement('div'); tEl.className = 't'; tEl.textContent = cellData.text;
+      cell.appendChild(tEl);
+    }
+    grid.appendChild(cell);
+  }
+  wrap.appendChild(grid);
+  return wrap;
+}
+
+function renderView(){
+  const out = $('#calendars');
+  out.innerHTML = '';
+  const month = $('#month').value;
+  try{ localStorage.setItem(LS_MONTH, month); } catch(err){}
+  const q = $('#q').value.trim().toLowerCase();
+  const monthGroups = GROUPS.filter(g => (g.month || 'Без назви') === month);
+  const shown = new Set();
+  let renderedAny = false;
+  const keyOf = g => g.section + '|' + g.doctor.trim().toLowerCase();
+
+  const pinnedList = getPinned();
+  if(pinnedList.length){
+    const matches = monthGroups.filter(g => pinnedList.includes(g.doctor.trim().toLowerCase()));
+    if(matches.length){
+      const hdr = document.createElement('p'); hdr.className = 'pinned-hdr'; hdr.textContent = 'Закріплені';
+      out.appendChild(hdr);
+      for(const g of matches){
+        out.appendChild(renderCalendar(g));
+        shown.add(keyOf(g));
+        renderedAny = true;
+      }
+    }
+  }
+
+  if(q){
+    let exact = monthGroups.filter(g => g.doctor.trim().toLowerCase() === q);
+    if(!exact.length) exact = monthGroups.filter(g => g.doctor.toLowerCase().includes(q));
+    let found = 0;
+    for(const g of exact){
+      const key = keyOf(g);
+      if(shown.has(key)) continue;
+      out.appendChild(renderCalendar(g));
+      shown.add(key);
+      found++;
+      renderedAny = true;
+    }
+    if(!found && !shown.size){
+      const note = document.createElement('p'); note.className = 'empty-note';
+      note.textContent = 'У цьому місяці нікого не знайдено за таким прізвищем.';
+      out.appendChild(note);
+      renderedAny = true;
+    }
+  }
+
+  if(!renderedAny){
+    const note = document.createElement('p'); note.className = 'empty-note';
+    note.textContent = 'Почніть вводити прізвище вище, щоб побачити календар, або натисніть ☆ біля картки, щоб закріпити працівника на головній.';
+    out.appendChild(note);
+  }
+}
+
+$('#q').addEventListener('input', renderView);
+$('#month').addEventListener('change', renderView);
+</script>
+</body>
+</html>
