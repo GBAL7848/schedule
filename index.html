@@ -29,10 +29,15 @@
   button{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:10px 16px;
     font-size:14px;font-weight:600;cursor:pointer}
   button:hover{background:#255a41}
+  .toggle-btn{margin-top:12px;background:transparent;color:var(--accent);border:1.5px solid var(--accent)}
+  .toggle-btn:hover{background:var(--accent-soft)}
+  .toggle-btn.active{background:var(--accent);color:#fff}
   .status{font-size:13px;margin-top:10px;color:var(--muted)}
   .status.err{color:var(--warn)}
   .status:empty{margin-top:0}
   #picker{display:none}
+  #settings{display:none}
+  .settings-title{margin:0 0 10px;font-size:14px;color:var(--muted);font-weight:600}
   .row2{display:flex;gap:12px;flex-wrap:wrap}
   .row2>div{flex:1;min-width:140px}
   #calendars{display:none}
@@ -73,8 +78,6 @@
   <h1>Графік працівників</h1>
 
   <div class="panel">
-    <label for="xlsxFile">Файл .xlsx</label>
-    <input type="file" id="xlsxFile" accept=".xlsx">
     <div class="status err" id="fileStatus"></div>
     <button type="button" id="clearBtn">Очистити збережені дані</button>
     <div class="row2" id="sheetPick">
@@ -82,6 +85,11 @@
         <select id="sheetSel"></select>
       </div>
     </div>
+  </div>
+
+  <div class="panel" id="settings">
+    <h3 class="settings-title">Налаштування</h3>
+    <button type="button" id="colorModeBtn" class="toggle-btn"></button>
   </div>
 
   <div class="panel" id="picker">
@@ -111,6 +119,25 @@ let GROUPS = []; // RECORDS, згруповані по (секція, місяц
 const WEEKDAYS = ['пн','вт','ср','чт','пт','сб','нд'];
 const MONTH_NAMES = ['січень','лютий','березень','квітень','травень','червень','липень','серпень','вересень','жовтень','листопад','грудень'];
 const NORMALIZED_GREEN = '#2f6f52'; // будь-який колір комірки, крім чорного, зводиться до цього зеленого
+// Стандартна палітра теми Office (dk1,lt1,dk2,lt2,accent1..6) — використовується
+// як ПРИБЛИЗНИЙ fallback, коли Excel зберігає колір комірки через індекс теми
+// (fgColor.theme/tint), а не прямий RGB. Це не гарантовано точний колір із
+// конкретного файлу (кастомна тема матиме інші значення), але краще показати
+// приблизний колір і позначку "приблизно", ніж тихо вважати комірку порожньою.
+const OFFICE_THEME_FALLBACK = ['FFFFFF','000000','EEECE1','1F497D','4F81BD','C0504D','9BBB59','8064A2','4BACC6','F79646'];
+function applyTint(rgbHex, tint){
+  if(!tint) return rgbHex;
+  const r = parseInt(rgbHex.slice(0,2),16), g = parseInt(rgbHex.slice(2,4),16), b = parseInt(rgbHex.slice(4,6),16);
+  const adj = v => Math.max(0, Math.min(255, Math.round(tint < 0 ? v*(1+tint) : v*(1-tint)+255*tint)));
+  const toHex = n => n.toString(16).padStart(2,'0').toUpperCase();
+  return toHex(adj(r)) + toHex(adj(g)) + toHex(adj(b));
+}
+function resolveThemeColor(fill){
+  if(!fill || fill.theme === undefined || fill.theme === null) return null;
+  const base = OFFICE_THEME_FALLBACK[fill.theme];
+  if(!base) return null;
+  return '#' + applyTint(base, fill.tint || 0);
+}
 const TRINITY_PURPLE = '#4c1925'; // колір для комірок зі словом "триніті" (з допуском на одруки)
 const TRINITY_WORD = 'триніті';
 const VACATION_GRAY = '#9e9e9e'; // колір діапазону "відпустка"
@@ -133,14 +160,17 @@ function levenshtein(a, b){
   return dp[n];
 }
 
-// Шукає у тексті комірки слово, схоже на targetWord (без урахування регістру,
-// з допуском до 2 помилок на слово приблизно такої ж довжини).
+// Шукає у тексті комірки слово, схоже на targetWord (без урахування регістру).
+// Поріг — ВІДНОСНИЙ до довжини слова (не більше ~25%, мінімум 1), а не жорстко
+// зафіксовані 2 помилки: для короткого слова 2 помилки — це вже інше слово,
+// для довгого — забагато хибних збігів пропускається повз.
 function hasFuzzyWord(text, targetWord){
   if(!text) return false;
+  const maxDist = Math.max(1, Math.round(targetWord.length * 0.25));
   const words = text.toLowerCase().split(/[^a-zа-яіїєґ']+/i).filter(Boolean);
   for(const w of words){
-    if(Math.abs(w.length - targetWord.length) > 3) continue;
-    if(levenshtein(w, targetWord) <= 2) return true;
+    if(Math.abs(w.length - targetWord.length) > maxDist + 1) continue;
+    if(levenshtein(w, targetWord) <= maxDist) return true;
   }
   return false;
 }
@@ -159,20 +189,19 @@ function normalizeColor(hex){
 }
 
 // Правило "відпустка": від комірки зі словом "відпустка" (з допуском на одруки)
-// і до останньої підряд комірки, що має той самий ОРИГІНАЛЬНИЙ колір з файлу
-// (rawColor, а не вже зведений до зеленого), — увесь цей діапазон фарбується в
-// сірий. Чорні комірки ніколи не займаються.
+// розширюємо діапазон ОБИДВА боки (не лише вперед) — поки колір збігається з
+// оригінальним кольором (rawColor, а не вже зведеним до зеленого) поміченої
+// комірки. Це важливо, якщо слово написане не в першому дні блоку кольору.
+// Чорні комірки ніколи не займаються і завжди обривають діапазон.
 function applyVacationRanges(dayCells){
-  for(let i=0;i<dayCells.length;i++){
-    const cell = dayCells[i];
-    if(cell.locked || !hasVacationWord(cell.text)) continue;
-    const refColor = cell.rawColor;
-    let j = i;
-    while(j < dayCells.length && !dayCells[j].locked && dayCells[j].rawColor === refColor){
-      dayCells[j].color = VACATION_GRAY;
-      j++;
-    }
-    i = j - 1;
+  const labeled = dayCells.filter(c => !c.locked && hasVacationWord(c.text));
+  for(const start of labeled){
+    const refColor = start.rawColor;
+    const i = dayCells.indexOf(start);
+    let lo = i, hi = i;
+    while(lo - 1 >= 0 && !dayCells[lo-1].locked && dayCells[lo-1].rawColor === refColor) lo--;
+    while(hi + 1 < dayCells.length && !dayCells[hi+1].locked && dayCells[hi+1].rawColor === refColor) hi++;
+    for(let k = lo; k <= hi; k++) dayCells[k].color = VACATION_GRAY;
   }
 }
 
@@ -182,7 +211,13 @@ const LS_SHEET = 'scheduleApp:sheet';
 const LS_MONTH = 'scheduleApp:month';
 const LS_PINNED = 'scheduleApp:pinned';
 const LS_RECORDS = 'scheduleApp:records'; // кеш структурованих даних (лікар/місяць/день/колір/текст)
+const LS_COLOR_MODE = 'scheduleApp:colorMode';
 let pendingMonth = null;
+// 'normalized' — звичний вигляд (чорний/зелений/сірий відпустка/бордовий триніті);
+// 'original' — показує rawColor прямо з файлу (як у вихідній таблиці Excel),
+// текст комірки лишається той самий в обох режимах.
+let COLOR_MODE = 'normalized';
+try{ const saved = localStorage.getItem(LS_COLOR_MODE); if(saved === 'original') COLOR_MODE = 'original'; } catch(err){}
 const DATA_URL = 'schedule.enc';           // зашифрований файл, який заливає скрипт
 const LS_PASS = 'scheduleApp:pass';        // пароль до графіка (зберігається на цьому пристрої)
 const PBKDF2_ITER = 600000;                // має збігатися зі скриптом
@@ -281,7 +316,8 @@ function buildBlocks(grid){
               if(!cell) continue;
               const text = (cell.v||'').trim();
               const bg = cell.bg;
-              if(text || bg) marks.set(col.day, {text, bg});
+              const themeApprox = !!cell.themeApprox;
+              if(text || bg) marks.set(col.day, {text, bg, themeApprox});
             }
             block.rows.push({label, isSection:false, marks});
           }
@@ -315,11 +351,11 @@ function buildRecords(blocks, sheetName){
       //    rawColor — оригінальний колір із файлу, зберігаємо окремо, бо саме
       //    за ним (а не за вже зведеним "color") треба порівнювати діапазон "відпустки".
       const dayCells = b.cols.map(col => {
-        const mark = r.marks.get(col.day) || {text:'', bg:null};
+        const mark = r.marks.get(col.day) || {text:'', bg:null, themeApprox:false};
         const rawColor = mark.bg || null;
         const isBlack = rawColor && rawColor.toUpperCase() === '#000000';
         const color = isBlack ? rawColor : (hasTrinityWord(mark.text) ? TRINITY_PURPLE : (normalizeColor(rawColor) || ''));
-        return {day: col.day, weekday: col.weekday, text: mark.text || '', rawColor, color, locked: !!isBlack};
+        return {day: col.day, weekday: col.weekday, text: mark.text || '', rawColor, color, locked: !!isBlack, themeApprox: !!mark.themeApprox};
       });
       dayCells.sort((a,c) => a.day - c.day);
       // 2) правило "відпустка": розтягує сірий колір від поміченої комірки на
@@ -334,6 +370,8 @@ function buildRecords(blocks, sheetName){
           day: dc.day,
           weekday: dc.weekday,
           color: dc.color,
+          rawColor: dc.rawColor,
+          themeApprox: dc.themeApprox,
           text: dc.text
         });
       }
@@ -351,7 +389,7 @@ function groupRecords(records){
     const key = r.section + '|' + r.month + '|' + r.doctor.trim().toLowerCase();
     let g = map.get(key);
     if(!g){ g = {sheet:r.sheet, section:r.section, month:r.month, doctor:r.doctor, cells:new Map()}; map.set(key, g); }
-    g.cells.set(r.day, {weekday:r.weekday, color:r.color, text:r.text});
+    g.cells.set(r.day, {weekday:r.weekday, color:r.color, text:r.text, rawColor:r.rawColor, themeApprox:r.themeApprox});
   }
   return [...map.values()];
 }
@@ -393,13 +431,20 @@ function sheetToGrid(ws){
       let v = '';
       if(cell) v = (cell.w !== undefined ? cell.w : (cell.v !== undefined ? String(cell.v) : ''));
       let bg = null;
+      let themeApprox = false;
       if(cell && cell.s){
         const fill = cell.s.fgColor || cell.s.bgColor;
         if(fill && fill.rgb && !/^(FFFFFFFF|00000000|FFFFFF)$/i.test(fill.rgb)){
           bg = '#' + fill.rgb.slice(-6); // оригінальний колір з файлу — без зведення до зеленого
+        } else if(fill && fill.rgb === undefined && fill.theme !== undefined){
+          const resolved = resolveThemeColor(fill);
+          if(resolved && resolved.toUpperCase() !== '#FFFFFF'){
+            bg = resolved;
+            themeApprox = true; // приблизне значення (колір теми Excel, не точний RGB)
+          }
         }
       }
-      row.push({v: (v||'').toString().trim(), bg});
+      row.push({v: (v||'').toString().trim(), bg, themeApprox});
     }
     grid.push(row);
   }
@@ -423,33 +468,6 @@ function loadSheet(name){
   }
 }
 
-$('#xlsxFile').addEventListener('change', async e => {
-  const file = e.target.files[0];
-  const fs = $('#fileStatus');
-  if(!file) return;
-  fs.className = 'status'; fs.textContent = 'Читання файлу…';
-  try{
-    const buf = await file.arrayBuffer();
-    try{
-      localStorage.setItem(LS_FILE, arrayBufferToBase64(buf));
-      localStorage.setItem(LS_NAME, file.name);
-      localStorage.removeItem(LS_SHEET);
-    } catch(err){ console.warn('Не вдалося зберегти файл локально:', err); }
-    WORKBOOK = XLSX.read(buf, {type:'array', cellStyles:true});
-    const sel = $('#sheetSel');
-    sel.innerHTML = '';
-    for(const name of WORKBOOK.SheetNames){
-      const opt = document.createElement('option'); opt.value = name; opt.textContent = name;
-      sel.appendChild(opt);
-    }
-    $('#sheetPick').style.display = WORKBOOK.SheetNames.length > 1 ? 'flex' : 'none';
-    $('#clearBtn').style.display = 'inline-block';
-    loadSheet(WORKBOOK.SheetNames[0]);
-  } catch(err){
-    fs.className = 'status err';
-    fs.textContent = 'Не вдалось прочитати файл: ' + err.message;
-  }
-});
 $('#sheetSel').addEventListener('change', e => {
   try{ localStorage.setItem(LS_SHEET, e.target.value); } catch(err){}
   loadSheet(e.target.value);
@@ -490,6 +508,7 @@ function initPicker(){
       dl.appendChild(opt);
     }
   }
+  $('#settings').style.display = 'block';
   $('#picker').style.display = 'block';
   $('#calendars').style.display = 'block';
   renderView();
@@ -626,10 +645,22 @@ function renderCalendar(group){
   for(const day of sortedDays){
     const cell = document.createElement('div'); cell.className = 'cell';
     const cellData = group.cells.get(day);
-    if(cellData.color){
-      cell.style.background = cellData.color;
-      cell.style.borderColor = cellData.color;
-    } else if(cellData.text){
+    // Підказка зберігає оригінальну інформацію з файлу (колір + текст), навіть
+    // якщо на екрані вона зведена до чорного/зеленого/сірого/бордового.
+    const colorNote = cellData.rawColor
+      ? cellData.rawColor + (cellData.themeApprox ? ' (приблизно, колір теми Excel)' : '')
+      : 'немає заливки';
+    cell.title = 'День ' + day + ' · колір у файлі: ' + colorNote + ' · текст: "' + (cellData.text || '—') + '"';
+    // У режимі "оригінал" показуємо rawColor як є у файлі, ігноруючи наші
+    // правила (чорний/триніті/відпустка/зелений) — тільки колір і текст з Excel.
+    const shownColor = COLOR_MODE === 'original' ? cellData.rawColor : cellData.color;
+    if(shownColor){
+      cell.style.background = shownColor;
+      cell.style.borderColor = shownColor;
+    } else if(cellData.text && COLOR_MODE !== 'original'){
+      // Підсвітка "є текст, але немає кольору" — це наша власна зручність
+      // для звичного вигляду; в режимі "оригінал" її не показуємо, бо в
+      // самому файлі в такій комірці просто немає заливки.
       cell.style.background = 'var(--accent-soft)';
       cell.style.borderColor = 'var(--accent)';
     }
@@ -699,6 +730,20 @@ function renderView(){
 
 $('#q').addEventListener('input', renderView);
 $('#month').addEventListener('change', renderView);
+
+function updateColorModeBtn(){
+  const btn = $('#colorModeBtn');
+  const isOriginal = COLOR_MODE === 'original';
+  btn.textContent = isOriginal ? '✓ Оригінальні кольори з файлу' : 'Показати оригінальні кольори з файлу';
+  btn.classList.toggle('active', isOriginal);
+}
+$('#colorModeBtn').addEventListener('click', () => {
+  COLOR_MODE = COLOR_MODE === 'original' ? 'normalized' : 'original';
+  try{ localStorage.setItem(LS_COLOR_MODE, COLOR_MODE); } catch(err){}
+  updateColorModeBtn();
+  renderView();
+});
+updateColorModeBtn();
 </script>
 </body>
 </html>
