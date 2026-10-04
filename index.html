@@ -245,6 +245,7 @@ const LS_PINNED = 'scheduleApp:pinned';
 const LS_RECORDS = 'scheduleApp:records'; // кеш структурованих даних (лікар/місяць/день/колір/текст)
 const LS_COLOR_MODE = 'scheduleApp:colorMode';
 let pendingMonth = null;
+let dayCtx = null; // {month, day} відкритої сторінки дня; оголошено тут, бо renderView викликається під час завантаження
 // 'normalized' — звичний вигляд (чорний/зелений/сірий відпустка/бордовий триніті);
 // 'original' — показує rawColor прямо з файлу (як у вихідній таблиці Excel),
 // текст комірки лишається той самий в обох режимах.
@@ -768,8 +769,6 @@ function renderView(){
 }
 
 // ---------- Сторінка дня: хто працює у вибраний день ----------
-let dayCtx = null; // {month, day} поточної відкритої сторінки дня
-
 function isVacationCell(c){ return c.color === VACATION_GRAY || hasVacationWord(c.text); }
 
 function renderDayPage(){
