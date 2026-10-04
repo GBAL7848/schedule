@@ -72,9 +72,9 @@
     padding:20px 12px 60px;
     padding-top:calc(20px + env(safe-area-inset-top,0px));
     padding-bottom:calc(60px + env(safe-area-inset-bottom,0px));
-    transform:translateX(100%);visibility:hidden;
-    transition:transform .25s ease,visibility 0s linear .25s}
-  #dayPage.open{transform:none;visibility:visible;transition:transform .25s ease}
+    transform:translate3d(100%,0,0);visibility:hidden;will-change:transform;
+    transition:transform .2s ease-out,visibility 0s linear .2s}
+  #dayPage.open{transform:translate3d(0,0,0);visibility:visible;transition:transform .2s ease-out}
   #dayPage .wrap{max-width:920px;margin:0 auto}
   .backbtn{background:transparent;color:var(--accent);border:1.5px solid var(--accent);margin-bottom:14px}
   .backbtn:hover{background:var(--accent-soft)}
@@ -769,6 +769,9 @@ function renderView(){
 }
 
 // ---------- Сторінка дня: хто працює у вибраний день ----------
+// «Триніті» визначаємо за текстом (з допуском на одруки) — це працює в обох режимах кольору.
+function isTrinityCell(c){ return c.color === TRINITY_PURPLE || hasTrinityWord(c.text); }
+function isBlackCell(c){ return !!c.rawColor && c.rawColor.toUpperCase() === '#000000'; }
 function isVacationCell(c){ return c.color === VACATION_GRAY || hasVacationWord(c.text); }
 
 function renderDayPage(){
@@ -781,14 +784,24 @@ function renderDayPage(){
   $('#dayTitle').textContent = day + (month ? ' · ' + month : '');
   $('#daySub').textContent = weekday ? weekday.charAt(0).toUpperCase() + weekday.slice(1) : '';
 
-  const working = [], onVacation = [];
+  // Групи: нічна (чорні) — окремо; «триніті» — окремо; решта — окремо; відпустка — окремо.
+  const others = [], blacks = [], trinity = [], onVacation = [];
   for(const g of groups){
     const c = g.cells.get(day);
     if(!(c.text || c.color)) continue;
-    (isVacationCell(c) ? onVacation : working).push({g, c});
+    if(isVacationCell(c)) onVacation.push({g, c});
+    else if(isBlackCell(c)) blacks.push({g, c});
+    else if(isTrinityCell(c)) trinity.push({g, c});
+    else others.push({g, c});
   }
-  const byName = (a, b) => (a.g.section || '').localeCompare(b.g.section || '') || a.g.doctor.localeCompare(b.g.doctor);
-  working.sort(byName); onVacation.sort(byName);
+  // Усередині групи: однакові кольори йдуть поруч (комірки без кольору — в кінці),
+  // далі за секцією та прізвищем. Колір береться за поточним режимом показу.
+  const colorKey = ({c}) => ((COLOR_MODE === 'original' ? c.rawColor : c.color) || '\uffff').toLowerCase();
+  const byColorName = (a, b) =>
+    colorKey(a).localeCompare(colorKey(b)) ||
+    (a.g.section || '').localeCompare(b.g.section || '') ||
+    a.g.doctor.localeCompare(b.g.doctor, 'uk');
+  others.sort(byColorName); blacks.sort(byColorName); trinity.sort(byColorName); onVacation.sort(byColorName);
 
   const list = $('#dayList');
   list.innerHTML = '';
@@ -818,10 +831,12 @@ function renderDayPage(){
       list.appendChild(row);
     }
   };
-  addSection('Працюють', working);
+  addSection('Інші', others);
+  addSection('Нічна', blacks);
+  addSection('Триніті', trinity);
   addSection('У відпустці', onVacation);
 
-  if(!working.length && !onVacation.length){
+  if(!others.length && !blacks.length && !trinity.length && !onVacation.length){
     const note = document.createElement('p'); note.className = 'empty-note';
     note.textContent = 'На цей день у графіку нікого немає.';
     list.appendChild(note);
@@ -849,12 +864,21 @@ function hideDayPage(){
   dayCtx = null;
 }
 
-// Закриття кнопкою/свайпом: повертаємось на крок назад в історії (popstate сховає сторінку).
+// Закриваємо одразу (без очікування popstate — саме воно давало затримку), а запис
+// в історії прибираємо слідом; відповідний popstate ігноруємо.
+let ignoreNextPop = false;
 function closeDayPage(){
   if(!dayCtx) return;
-  if(history.state && history.state.dayPage){ history.back(); } else { hideDayPage(); }
+  hideDayPage();
+  if(history.state && history.state.dayPage){
+    ignoreNextPop = true;
+    try{ history.back(); } catch(err){ ignoreNextPop = false; }
+  }
 }
-window.addEventListener('popstate', () => { if(dayCtx) hideDayPage(); });
+window.addEventListener('popstate', () => {
+  if(ignoreNextPop){ ignoreNextPop = false; return; }
+  if(dayCtx) hideDayPage(); // системна кнопка «назад»
+});
 $('#dayBack').addEventListener('click', closeDayPage);
 
 // Свайп вліво по сторінці дня — повернення на головну.
