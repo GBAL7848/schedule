@@ -67,18 +67,29 @@
   .cell.clickable:active{opacity:.7}
 
   /* Сторінка дня — висувається справа, закривається свайпом вліво */
-  #dayPage{position:fixed;inset:0;z-index:50;background:var(--bg);overflow-y:auto;
+  #dayPage,#newsPage{position:fixed;inset:0;z-index:50;background:var(--bg);overflow-y:auto;
     -webkit-overflow-scrolling:touch;overscroll-behavior:contain;
     padding:20px 12px 60px;
     padding-top:calc(20px + env(safe-area-inset-top,0px));
     padding-bottom:calc(60px + env(safe-area-inset-bottom,0px));
     transform:translate3d(100%,0,0);visibility:hidden;will-change:transform;
     transition:transform .2s ease-out,visibility 0s linear .2s}
-  #dayPage.open{transform:translate3d(0,0,0);visibility:visible;transition:transform .2s ease-out}
-  #dayPage .wrap{max-width:920px;margin:0 auto}
+  #dayPage.open,#newsPage.open{transform:translate3d(0,0,0);visibility:visible;transition:transform .2s ease-out}
+  #dayPage .wrap,#newsPage .wrap{max-width:920px;margin:0 auto}
   .backbtn{background:transparent;color:var(--accent);border:1.5px solid var(--accent);margin-bottom:14px}
   .backbtn:hover{background:var(--accent-soft)}
   .day-sub{font-size:13px;color:var(--muted);margin:0 0 14px}
+  .day-sub.err{color:var(--warn)}
+  .settings-row{display:flex;flex-wrap:wrap;gap:0 10px}
+  .news{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:10px;padding:12px 14px;margin-bottom:10px}
+  .news.low{border-left-color:var(--warn)}
+  .news .meta{display:flex;justify-content:space-between;gap:8px;font-size:13px;color:var(--muted);margin-bottom:6px}
+  .news .meta b{color:var(--ink);word-break:break-word}
+  .news .meta .ago{white-space:nowrap}
+  .news .stars{color:var(--accent);letter-spacing:1px}
+  .news.low .stars{color:var(--warn)}
+  .news p{margin:0;font-size:15px;line-height:1.45;white-space:pre-wrap;word-break:break-word}
+  .news p.none{color:var(--muted);font-style:italic}
   .day-sec{font-size:13px;color:var(--muted);font-weight:700;margin:14px 0 8px;text-transform:uppercase;letter-spacing:.03em}
   .emp{display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--line);
     border-radius:10px;padding:10px 12px;margin-bottom:8px}
@@ -112,7 +123,10 @@
 
   <div class="panel" id="settings">
     <h3 class="settings-title">Налаштування</h3>
-    <button type="button" id="colorModeBtn" class="toggle-btn"></button>
+    <div class="settings-row">
+      <button type="button" id="colorModeBtn" class="toggle-btn"></button>
+      <button type="button" id="newsBtn" class="toggle-btn">Новини (відгуки Google Maps)</button>
+    </div>
   </div>
 
   <div class="panel" id="picker">
@@ -138,6 +152,15 @@
     <h1 id="dayTitle"></h1>
     <p class="day-sub" id="daySub"></p>
     <div id="dayList"></div>
+  </div>
+</div>
+
+<div id="newsPage" aria-hidden="true">
+  <div class="wrap">
+    <button type="button" class="backbtn" id="newsBack">← Назад</button>
+    <h1 id="newsTitle">Новини</h1>
+    <p class="day-sub" id="newsStatus"></p>
+    <div id="newsList"></div>
   </div>
 </div>
 
@@ -512,6 +535,7 @@ $('#clearBtn').addEventListener('click', () => {
     localStorage.removeItem(LS_SHEET);
     localStorage.removeItem(LS_MONTH);
     localStorage.removeItem(LS_PASS);
+    localStorage.removeItem('scheduleApp:news');
   } catch(err){}
   location.reload();
 });
@@ -636,7 +660,7 @@ async function syncFromServer(){
   fs.className = 'status';
   fs.textContent = 'Дані з сервера' + (lm ? ' · оновлено ' + new Date(lm).toLocaleString('uk-UA') : '') + (changed ? '' : ' (без змін)');
 }
-syncFromServer();
+const syncP = syncFromServer();
 // при поверненні в застосунок — оновлюємо, якщо минуло більше 10 хвилин
 document.addEventListener('visibilitychange', () => {
   if(document.visibilityState === 'visible' && Date.now() - lastSyncAt > 10*60*1000) syncFromServer();
@@ -898,6 +922,118 @@ $('#dayBack').addEventListener('click', closeDayPage);
   }, {passive:true});
   page.addEventListener('touchcancel', () => { tracking = false; }, {passive:true});
 })();
+
+/* ---- Новини: відгуки Google Maps за тиждень. Скрипт публікує їх у news.enc
+   (той самий пароль, що й для графіка). Сторінка висувається так само, як сторінка дня. ---- */
+const LS_NEWS = 'scheduleApp:news';
+const NEWS_URL = 'news.enc';
+let newsOpen = false;
+
+function renderNews(data){
+  const list = $('#newsList'); list.innerHTML = '';
+  $('#newsTitle').textContent = data.place ? 'Новини · ' + data.place : 'Новини';
+  const st = $('#newsStatus'); st.className = 'day-sub';
+  const gen = data.generated ? new Date(data.generated) : null;
+  st.textContent = 'Відгуки Google Maps за останні ' + (data.days || 7) + ' дн.' +
+    (gen && !isNaN(gen) ? ' · оновлено ' + gen.toLocaleString('uk-UA') : '');
+  if(!data.items || !data.items.length){
+    const n = document.createElement('p'); n.className = 'empty-note';
+    n.textContent = 'За цей період нових відгуків немає.';
+    list.appendChild(n); return;
+  }
+  for(const it of data.items){
+    const card = document.createElement('div');
+    card.className = 'news' + (it.rating && it.rating <= 2 ? ' low' : '');
+    const meta = document.createElement('div'); meta.className = 'meta';
+    const who = document.createElement('b'); who.textContent = it.author || 'Без імені';
+    const right = document.createElement('span'); right.className = 'ago';
+    if(it.rating){
+      const stars = document.createElement('span'); stars.className = 'stars';
+      stars.textContent = '★'.repeat(it.rating) + '☆'.repeat(Math.max(0, 5 - it.rating));
+      stars.setAttribute('aria-label', 'Оцінка ' + it.rating + ' з 5');
+      right.appendChild(stars); right.appendChild(document.createTextNode(' '));
+    }
+    right.appendChild(document.createTextNode(it.ago || ''));
+    meta.appendChild(who); meta.appendChild(right);
+    const txt = document.createElement('p');
+    if(it.text) txt.textContent = it.text; else { txt.className = 'none'; txt.textContent = 'Без тексту'; }
+    card.appendChild(meta); card.appendChild(txt);
+    list.appendChild(card);
+  }
+}
+
+async function loadNews(){
+  const st = $('#newsStatus');
+  try{ const c = localStorage.getItem(LS_NEWS); if(c) renderNews(JSON.parse(c)); } catch(err){}
+  if(!(window.crypto && crypto.subtle)) return;
+  let res;
+  try{ res = await fetch(NEWS_URL + '?t=' + Date.now(), {cache:'no-store'}); } catch(err){ return; } // офлайн — лишається кеш
+  if(!res.ok){ if(!st.textContent) st.textContent = 'Новин поки немає.'; return; }
+  const enc = await res.arrayBuffer();
+  let pass = null;
+  try{ pass = localStorage.getItem(LS_PASS); } catch(err){}
+  if(!pass){ pass = prompt('Пароль для графіка:'); if(pass === null) return; }
+  try{
+    const buf = await decryptSchedule(enc, pass);
+    const data = JSON.parse(new TextDecoder().decode(buf));
+    try{ localStorage.setItem(LS_PASS, pass); localStorage.setItem(LS_NEWS, JSON.stringify(data)); } catch(err){}
+    renderNews(data);
+  } catch(err){
+    try{ localStorage.removeItem(LS_PASS); } catch(e2){}
+    st.className = 'day-sub err';
+    st.textContent = 'Не вдалося розшифрувати новини: невірний пароль.';
+  }
+}
+
+function openNews(waitFor){
+  newsOpen = true;
+  const page = $('#newsPage');
+  page.scrollTop = 0;
+  page.classList.add('open');
+  page.setAttribute('aria-hidden', 'false');
+  document.body.style.overflow = 'hidden';
+  try{ history.pushState({newsPage:true}, ''); } catch(err){}
+  Promise.resolve(waitFor).then(loadNews);   // після syncFromServer, щоб пароль не питало двічі
+}
+function hideNews(){
+  const page = $('#newsPage');
+  page.classList.remove('open');
+  page.setAttribute('aria-hidden', 'true');
+  if(!dayCtx) document.body.style.overflow = '';
+  newsOpen = false;
+}
+let ignoreNextNewsPop = false;
+function closeNews(){
+  if(!newsOpen) return;
+  hideNews();
+  if(history.state && history.state.newsPage){
+    ignoreNextNewsPop = true;
+    try{ history.back(); } catch(err){ ignoreNextNewsPop = false; }
+  }
+}
+window.addEventListener('popstate', () => {
+  if(ignoreNextNewsPop){ ignoreNextNewsPop = false; return; }
+  if(newsOpen) hideNews();                    // системна кнопка «назад»
+});
+$('#newsBtn').addEventListener('click', () => openNews());
+$('#newsBack').addEventListener('click', closeNews);
+(function(){                                  // свайп вліво — назад, як на сторінці дня
+  const page = $('#newsPage');
+  let sx = 0, sy = 0, tracking = false;
+  page.addEventListener('touchstart', e => {
+    if(e.touches.length !== 1){ tracking = false; return; }
+    sx = e.touches[0].clientX; sy = e.touches[0].clientY; tracking = true;
+  }, {passive:true});
+  page.addEventListener('touchend', e => {
+    if(!tracking) return;
+    tracking = false;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - sx, dy = t.clientY - sy;
+    if(dx < -70 && Math.abs(dx) > Math.abs(dy) * 1.5) closeNews();
+  }, {passive:true});
+  page.addEventListener('touchcancel', () => { tracking = false; }, {passive:true});
+})();
+if(/[?&]news=1/.test(location.search)) openNews(syncP);   // посилання з меню трея
 
 $('#q').addEventListener('input', renderView);
 $('#month').addEventListener('change', renderView);
