@@ -59,12 +59,12 @@
   .calhead h2{margin:0}
   .pinbtn{background:none;border:none;font-size:20px;line-height:1;padding:2px 4px;cursor:pointer;color:var(--accent);flex:0 0 auto}
   .pinbtn:hover{opacity:.7}
-  .pinbtn.clip{font-size:18px;filter:grayscale(1) opacity(.45)}
-  .pinbtn.clip.on{filter:none}
-  .favbtn{color:#e0245e}
+  .pinbtn{color:#111;display:inline-flex;align-items:center}
+  .pinbtn svg{width:22px;height:22px;display:block}
+  .pinbtn.clip:not(.on){opacity:.45}
   .headbtns{display:flex;align-items:center;gap:2px;flex:0 0 auto}
-  .day-sec.fav{color:#e0245e}
-  .emp.fav{border-color:#e0245e;background:#fff5f8}
+  .day-sec.fav{color:#111}
+  .emp.fav{border-color:#111;background:#f2f2f2}
   .pinned-hdr{font-size:13px;color:var(--muted);font-weight:700;margin:0 0 8px;text-transform:uppercase;letter-spacing:.03em}
   #clearBtn{display:none;margin-top:8px;background:transparent;color:var(--warn);border:1px solid var(--warn-soft);border-radius:6px;padding:6px 10px;font-size:12px}
   #clearBtn:hover{background:var(--warn-soft)}
@@ -310,6 +310,11 @@ function setPinned(list){
 function isPinned(name){
   return getPinned().includes(name.trim().toLowerCase());
 }
+const ICON_PIN_ON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M16 9V4h1c.55 0 1-.45 1-1s-.45-1-1-1H7c-.55 0-1 .45-1 1s.45 1 1 1h1v5c0 1.66-1.34 3-3 3v2h5.97v7l1 1 1-1v-7H19v-2c-1.66 0-3-1.34-3-3z"/></svg>';
+const ICON_PIN_OFF = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" d="M16 9V4h1c.55 0 1-.45 1-1s-.45-1-1-1H7c-.55 0-1 .45-1 1s.45 1 1 1h1v5c0 1.66-1.34 3-3 3v2h5.97v7l1 1 1-1v-7H19v-2c-1.66 0-3-1.34-3-3z"/></svg>';
+const HEART_PATH = 'M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z';
+const ICON_HEART_ON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="' + HEART_PATH + '"/></svg>';
+const ICON_HEART_OFF = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" d="' + HEART_PATH + '"/></svg>';
 function getFavs(){
   try{ return JSON.parse(localStorage.getItem(LS_FAVS) || '[]'); } catch(err){ return []; }
 }
@@ -700,13 +705,13 @@ function renderCalendar(group){
   pinBtn.type = 'button';
   const pinnedNow = isPinned(group.doctor);
   pinBtn.className = 'pinbtn clip' + (pinnedNow ? ' on' : '');
-  pinBtn.textContent = '📎';
+  pinBtn.innerHTML = pinnedNow ? ICON_PIN_ON : ICON_PIN_OFF;
   pinBtn.title = pinnedNow ? 'Відкріпити з головної' : 'Закріпити на головній';
   pinBtn.addEventListener('click', () => { togglePinned(group.doctor); renderView(); });
   const favBtn = document.createElement('button');
   favBtn.type = 'button'; favBtn.className = 'pinbtn favbtn';
   const favNow = isFav(group.doctor);
-  favBtn.textContent = favNow ? '♥' : '♡';
+  favBtn.innerHTML = favNow ? ICON_HEART_ON : ICON_HEART_OFF;
   favBtn.title = favNow ? 'Прибрати з обраних' : 'Додати до обраних (виділяється на сторінці дня)';
   favBtn.addEventListener('click', () => { toggleFav(group.doctor); renderView(); });
   const btns = document.createElement('div'); btns.className = 'headbtns';
@@ -818,7 +823,7 @@ function renderView(){
 
   if(!renderedAny){
     const note = document.createElement('p'); note.className = 'empty-note';
-    note.textContent = 'Почніть вводити прізвище вище, щоб побачити календар, або натисніть 📎 біля картки, щоб закріпити працівника на головній.';
+    note.textContent = 'Почніть вводити прізвище вище, щоб побачити календар, або натисніть кнопку біля картки, щоб закріпити працівника на головній.';
     out.appendChild(note);
   }
   refreshDayPage();
