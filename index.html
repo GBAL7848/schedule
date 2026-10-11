@@ -211,6 +211,20 @@
   .news.low{border-color:#f0b7a8;background:#fff6f3}
   .news .stars{color:#c97a00}
   .news.low .stars{color:var(--warn)}
+  /* Новини — стиль карток */
+  #newsBack{display:none}
+  #newsStatus{font-size:13px;font-weight:600;color:var(--muted);margin:0 0 2px}
+  #newsStatus.err{color:var(--warn)}
+  #newsPage h1{margin:0 0 16px}
+  .news{padding:14px;margin-bottom:10px}
+  .news .ntop{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+  .news .nstars{display:flex;align-items:center;gap:2px;color:#c97a00}
+  .news .nstars svg{width:14px;height:14px;display:block}
+  .news.low .nstars{color:var(--warn)}
+  .news .nago{font-size:12px;font-weight:700;border-radius:10px;padding:4px 10px;background:#fbe3b8;color:#5a3500;white-space:nowrap}
+  .news.low .nago{background:#fbdad2;color:#7a2410}
+  .news .nauthor{display:block;font-size:16px;font-weight:700;margin:0 0 4px;word-break:break-word}
+  .news p{font-size:14px;line-height:1.45;color:var(--muted)}
 </style>
 </head>
 <body>
@@ -218,8 +232,7 @@
   <div class="panel" id="filePanel">
     <div class="status err" id="fileStatus" role="status"></div>
     <div id="sheetPick">
-      <label for="sheetSel">Аркуш</label>
-      <select id="sheetSel"></select>
+      <select id="sheetSel" aria-label="Аркуш"></select>
     </div>
   </div>
 
@@ -237,7 +250,6 @@
   <div class="panel" id="picker">
     <div class="head">
       <div>
-        <div class="eyebrow">Графік працівників</div>
         <div class="steplabel" id="monthLabel" aria-live="polite"></div>
       </div>
       <div class="stepbtns">
@@ -268,8 +280,8 @@
 <div id="newsPage" aria-hidden="true">
   <div class="wrap">
     <button type="button" class="backbtn" id="newsBack">← Назад</button>
-    <h1 id="newsTitle">Новини</h1>
     <p class="day-sub" id="newsStatus"></p>
+    <h1 id="newsTitle">Новини</h1>
     <div id="newsList"></div>
   </div>
 </div>
@@ -934,8 +946,6 @@ function renderView(){
   if(pinnedList.length){
     const matches = monthGroups.filter(g => pinnedList.includes(g.doctor.trim().toLowerCase()));
     if(matches.length){
-      const hdr = document.createElement('p'); hdr.className = 'pinned-hdr'; hdr.textContent = 'Закріплені';
-      out.appendChild(hdr);
       for(const g of matches){
         out.appendChild(renderCalendar(g));
         shown.add(keyOf(g));
@@ -964,11 +974,6 @@ function renderView(){
     }
   }
 
-  if(!renderedAny){
-    const note = document.createElement('p'); note.className = 'empty-note';
-    note.textContent = 'Почніть вводити прізвище вище, щоб побачити календар, або натисніть кнопку біля картки, щоб закріпити працівника на головній.';
-    out.appendChild(note);
-  }
   refreshDayPage();
 }
 
@@ -1131,20 +1136,20 @@ function renderNews(data){
   for(const it of data.items){
     const card = document.createElement('div');
     card.className = 'news' + (it.rating && it.rating <= 2 ? ' low' : '');
-    const meta = document.createElement('div'); meta.className = 'meta';
-    const who = document.createElement('b'); who.textContent = it.author || 'Без імені';
-    const right = document.createElement('span'); right.className = 'ago';
+    const top = document.createElement('div'); top.className = 'ntop';
+    const stars = document.createElement('div'); stars.className = 'nstars';
     if(it.rating){
-      const stars = document.createElement('span'); stars.className = 'stars';
-      stars.textContent = '★'.repeat(it.rating) + '☆'.repeat(Math.max(0, 5 - it.rating));
-      stars.setAttribute('aria-label', 'Оцінка ' + it.rating + ' з 5');
-      right.appendChild(stars); right.appendChild(document.createTextNode(' '));
+      stars.setAttribute('role', 'img'); stars.setAttribute('aria-label', 'Оцінка ' + it.rating + ' з 5');
+      for(let i = 0; i < 5; i++){
+        stars.insertAdjacentHTML('beforeend', '<svg viewBox="0 0 24 24" fill="' + (i < it.rating ? 'currentColor' : 'none') + '" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.7 5.8 6.3.7-4.7 4.3 1.3 6.2L12 16.9 6.4 20l1.3-6.2L3 9.5l6.3-.7z"/></svg>');
+      }
     }
-    right.appendChild(document.createTextNode(it.ago || ''));
-    meta.appendChild(who); meta.appendChild(right);
+    top.appendChild(stars);
+    if(it.ago){ const ago = document.createElement('span'); ago.className = 'nago'; ago.textContent = it.ago; top.appendChild(ago); }
+    const who = document.createElement('b'); who.className = 'nauthor'; who.textContent = it.author || 'Без імені';
     const txt = document.createElement('p');
     if(it.text) txt.textContent = it.text; else { txt.className = 'none'; txt.textContent = 'Без тексту'; }
-    card.appendChild(meta); card.appendChild(txt);
+    card.appendChild(top); card.appendChild(who); card.appendChild(txt);
     list.appendChild(card);
   }
 }
