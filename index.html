@@ -54,7 +54,7 @@
   .searchbox input[type=text]{flex:1;min-width:0;width:auto;border:none;padding:0;background:transparent;color:var(--ink)}
   .searchbox input[type=text]:focus{outline:none}
   /* Нижня навігація */
-  #bottomNav{display:none;position:fixed;left:0;right:0;bottom:0;z-index:60;background:var(--panel);
+  #bottomNav{display:block;position:fixed;left:0;right:0;bottom:0;z-index:60;background:var(--panel);
     border-top:1px solid var(--line);
     padding:0 max(14px,env(safe-area-inset-right,0px)) max(10px,env(safe-area-inset-bottom,0px)) max(14px,env(safe-area-inset-left,0px))}
   #bottomNav .inner{display:flex;max-width:920px;margin:0 auto}
@@ -227,7 +227,10 @@
     <h3 class="settings-title">Налаштування</h3>
     <div class="settings-row">
       <button type="button" id="colorModeBtn" class="toggle-btn"></button>
+      <button type="button" id="manualBtn" class="toggle-btn">Завантажити файл вручну</button>
+      <button type="button" id="manualOff" class="toggle-btn" style="display:none">Повернутися до даних із сервера</button>
       <button type="button" id="clearBtn">Очистити збережені дані</button>
+      <input type="file" id="manualFile" accept=".xlsx,.xlsm,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
     </div>
   </div>
 
@@ -342,7 +345,15 @@ function hasFuzzyWord(text, targetWord){
   }
   return false;
 }
-function hasTrinityWord(text){ return hasFuzzyWord(text, TRINITY_WORD); }
+// «Триніті» — кирилицею та англійською (triniti / trinity), з допуском на одруки.
+const TRINITY_WORDS = [TRINITY_WORD, 'triniti', 'trinity'];
+function hasTrinityWord(text){ return TRINITY_WORDS.some(w => hasFuzzyWord(text, w)); }
+// «Care / кейр» — слово коротке, тому без допуску на одруки (інакше ловило б car, card, case…).
+function hasCareWord(text){
+  if(!text) return false;
+  return text.toLowerCase().split(/[^a-zа-яіїєґ']+/i).filter(Boolean)
+    .some(w => w === 'care' || w.startsWith('кейр'));
+}
 function hasVacationWord(text){ return hasFuzzyWord(text, VACATION_WORD); }
 
 // Чорний лишається чорним, білий/прозорий трактується як порожня комірка (bg=null),
@@ -375,6 +386,7 @@ function applyVacationRanges(dayCells){
 
 const LS_FILE = 'scheduleApp:fileData';
 const LS_NAME = 'scheduleApp:fileName';
+const LS_MANUAL = 'scheduleApp:manualFile'; // прапор: файл додано вручну, серверне оновлення його не перезаписує
 const LS_SHEET = 'scheduleApp:sheet';
 const LS_MONTH = 'scheduleApp:month';
 const LS_PINNED = 'scheduleApp:pinned';
@@ -653,6 +665,7 @@ function loadSheet(name){
     fs.className = 'status';
     fs.textContent = '';
     initPicker();
+    showManualStatus();
   } catch(err){
     fs.className = 'status err';
     fs.textContent = 'Помилка розбору: ' + err.message;
@@ -670,6 +683,7 @@ $('#clearBtn').addEventListener('click', () => {
     localStorage.removeItem(LS_SHEET);
     localStorage.removeItem(LS_MONTH);
     localStorage.removeItem(LS_PASS);
+    localStorage.removeItem(LS_MANUAL);
     localStorage.removeItem('scheduleApp:news');
   } catch(err){}
   location.reload();
@@ -753,6 +767,7 @@ async function decryptSchedule(encBuf, password){
 
 async function syncFromServer(){
   const fs = $('#fileStatus');
+  try{ if(localStorage.getItem(LS_MANUAL)) return; } catch(err){}   // ручний файл — сервер його не перезаписує
   if(!(window.crypto && crypto.subtle)) return;          // потрібен https
   lastSyncAt = Date.now();
   let res;
@@ -961,6 +976,7 @@ function renderView(){
 // «Триніті» визначаємо за текстом (з допуском на одруки) — це працює в обох режимах кольору.
 function isTrinityCell(c){ return c.color === TRINITY_PURPLE || hasTrinityWord(c.text); }
 function isBlackCell(c){ return !!c.rawColor && c.rawColor.toUpperCase() === '#000000'; }
+function isCareCell(c){ return hasCareWord(c.text); }
 function isVacationCell(c){ return c.color === VACATION_GRAY || hasVacationWord(c.text); }
 
 function renderDayPage(){
@@ -974,13 +990,14 @@ function renderDayPage(){
   $('#daySub').textContent = weekday ? weekday.charAt(0).toUpperCase() + weekday.slice(1) : '';
 
   // Групи: нічна (чорні) — окремо; «триніті» — окремо; решта — окремо; відпустка — окремо.
-  const favs = [], others = [], blacks = [], trinity = [], onVacation = [];
+  const favs = [], others = [], blacks = [], trinity = [], care = [], onVacation = [];
   const favList = getFavs();
   for(const g of groups){
     const c = g.cells.get(day);
     if(!(c.text || c.color)) continue;
     if(favList.includes(g.doctor.trim().toLowerCase()) && !isVacationCell(c)) favs.push({g, c});
     else if(isVacationCell(c)) onVacation.push({g, c});
+    else if(isCareCell(c)) care.push({g, c});
     else if(isBlackCell(c)) blacks.push({g, c});
     else if(isTrinityCell(c)) trinity.push({g, c});
     else others.push({g, c});
@@ -992,7 +1009,7 @@ function renderDayPage(){
     colorKey(a).localeCompare(colorKey(b)) ||
     (a.g.section || '').localeCompare(b.g.section || '') ||
     a.g.doctor.localeCompare(b.g.doctor, 'uk');
-  favs.sort(byColorName); others.sort(byColorName); blacks.sort(byColorName); trinity.sort(byColorName); onVacation.sort(byColorName);
+  favs.sort(byColorName); others.sort(byColorName); blacks.sort(byColorName); trinity.sort(byColorName); care.sort(byColorName); onVacation.sort(byColorName);
 
   const list = $('#dayList');
   list.innerHTML = '';
@@ -1026,9 +1043,10 @@ function renderDayPage(){
   addSection('Інші', others);
   addSection('Нічна', blacks);
   addSection('Триніті', trinity);
+  addSection('Care', care);
   addSection('У відпустці', onVacation);
 
-  if(!favs.length && !others.length && !blacks.length && !trinity.length && !onVacation.length){
+  if(!favs.length && !others.length && !blacks.length && !trinity.length && !care.length && !onVacation.length){
     const note = document.createElement('p'); note.className = 'empty-note';
     note.textContent = 'На цей день у графіку нікого немає.';
     list.appendChild(note);
@@ -1263,6 +1281,55 @@ $('#navSettings').addEventListener('click', () => {
   syncNav();
 });
 syncNav();
+
+/* ---- Ручне додавання файлу (для тестування) ---- */
+function showManualStatus(){
+  let on = false, name = '';
+  try{ on = !!localStorage.getItem(LS_MANUAL); name = localStorage.getItem(LS_NAME) || ''; } catch(err){}
+  $('#manualOff').style.display = on ? 'inline-block' : 'none';
+  if(!on) return;
+  const fs = $('#fileStatus');
+  fs.className = 'status has-icon ok';
+  fs.textContent = '';
+  const ico = document.createElement('span');
+  ico.className = 'sticon'; ico.title = 'Ручний файл'; ico.setAttribute('role', 'img'); ico.setAttribute('aria-label', 'Ручний файл');
+  ico.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>';
+  const t = document.createElement('span'); t.textContent = 'Ручний файл · ' + name;
+  fs.appendChild(ico); fs.appendChild(t);
+}
+$('#manualBtn').addEventListener('click', () => $('#manualFile').click());
+$('#manualFile').addEventListener('change', async e => {
+  const f = e.target.files && e.target.files[0];
+  e.target.value = '';
+  if(!f) return;
+  const fs = $('#fileStatus');
+  try{
+    const buf = await f.arrayBuffer();
+    XLSX.read(buf, {type:'array', cellStyles:true});          // перевірка, що файл читається
+    localStorage.setItem(LS_FILE, arrayBufferToBase64(buf));
+    localStorage.setItem(LS_NAME, f.name);
+    localStorage.setItem(LS_MANUAL, '1');
+    localStorage.removeItem(LS_SHEET);
+    localStorage.removeItem(LS_MONTH);
+    closeSettings();
+    tryAutoLoad();
+    showManualStatus();
+  } catch(err){
+    fs.className = 'status err';
+    fs.textContent = 'Не вдалося відкрити файл: ' + err.message;
+  }
+});
+$('#manualOff').addEventListener('click', () => {
+  try{
+    localStorage.removeItem(LS_MANUAL);
+    localStorage.removeItem(LS_FILE);
+    localStorage.removeItem(LS_NAME);
+    localStorage.removeItem(LS_SHEET);
+    localStorage.removeItem(LS_MONTH);
+  } catch(err){}
+  location.reload();
+});
+showManualStatus();
 </script>
 </body>
 </html>
