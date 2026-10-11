@@ -2,7 +2,7 @@
 <html lang="uk">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=5, user-scalable=yes">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, minimum-scale=1, maximum-scale=5, user-scalable=yes">
 <title>Графік працівників — календар</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
@@ -18,7 +18,8 @@
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
     padding:20px 12px 60px;
     padding-top:calc(20px + env(safe-area-inset-top,0px));
-    padding-bottom:calc(100px + env(safe-area-inset-bottom,0px));}
+    padding-bottom:calc(100px + env(safe-area-inset-bottom,0px));
+    padding-left:max(12px,env(safe-area-inset-left,0px));padding-right:max(12px,env(safe-area-inset-right,0px));}
   .wrap{max-width:920px;margin:0 auto}
   h1{font-size:clamp(18px,5vw,22px);margin:0 0 14px;font-weight:700}
   .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:14px}
@@ -38,18 +39,19 @@
   #picker{display:none}
   /* Нижня навігація */
   #bottomNav{display:none;position:fixed;left:0;right:0;bottom:0;z-index:60;background:var(--panel);
-    border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+    border-top:1px solid var(--line);
+    padding:0 max(14px,env(safe-area-inset-right,0px)) max(10px,env(safe-area-inset-bottom,0px)) max(14px,env(safe-area-inset-left,0px))}
   #bottomNav .inner{display:flex;max-width:920px;margin:0 auto}
-  #bottomNav .navbtn{flex:1;min-height:60px;background:none;color:var(--muted);border:none;border-radius:0;
+  #bottomNav .navbtn{flex:1;min-height:56px;margin-top:4px;background:none;color:var(--muted);border:none;border-radius:12px;
     display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
     font-size:12px;font-weight:600;padding:6px 4px;-webkit-tap-highlight-color:transparent}
   #bottomNav .navbtn:hover{background:var(--accent-soft)}
   #bottomNav .navbtn.on{color:var(--accent)}
-  #bottomNav .navbtn:focus-visible{outline:2px solid var(--accent);outline-offset:-3px}
+  #bottomNav .navbtn:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
   #bottomNav svg{width:22px;height:22px;display:block}
   /* Налаштування — панель над навігацією */
-  #settings{display:none;position:fixed;left:12px;right:12px;z-index:55;max-width:896px;margin:0 auto;
-    bottom:calc(72px + env(safe-area-inset-bottom,0px));box-shadow:0 6px 24px rgba(0,0,0,.15)}
+  #settings{display:none;position:fixed;left:max(12px,env(safe-area-inset-left,0px));right:max(12px,env(safe-area-inset-right,0px));z-index:55;max-width:896px;margin:0 auto;
+    bottom:calc(76px + max(10px,env(safe-area-inset-bottom,0px)));box-shadow:0 6px 24px rgba(0,0,0,.15)}
   #settings.open{display:block}
   .settings-title{margin:0 0 10px;font-size:14px;color:var(--muted);font-weight:600}
   .row2{display:flex;gap:12px;flex-wrap:wrap}
@@ -118,7 +120,7 @@
   .emp .tx{font-size:13px;color:var(--muted);text-align:right;word-break:break-word;max-width:45%}
 
   @media (max-width:480px){
-    body{padding-left:8px;padding-right:8px}
+    body{padding-left:max(8px,env(safe-area-inset-left,0px));padding-right:max(8px,env(safe-area-inset-right,0px))}
     .panel,.cal{padding:12px;border-radius:8px}
     .grid{gap:3px}
     .cell{border-radius:5px;padding:3px}
@@ -298,8 +300,8 @@ let dayCtx = null; // {month, day} відкритої сторінки дня; �
 // 'normalized' — звичний вигляд (чорний/зелений/сірий відпустка/бордовий триніті);
 // 'original' — показує rawColor прямо з файлу (як у вихідній таблиці Excel),
 // текст комірки лишається той самий в обох режимах.
-let COLOR_MODE = 'normalized';
-try{ const saved = localStorage.getItem(LS_COLOR_MODE); if(saved === 'original') COLOR_MODE = 'original'; } catch(err){}
+let COLOR_MODE = 'original'; // за замовчуванням — оригінальні кольори з файлу
+try{ const saved = localStorage.getItem(LS_COLOR_MODE); if(saved === 'normalized') COLOR_MODE = 'normalized'; } catch(err){}
 const DATA_URL = 'schedule.enc';           // зашифрований файл, який заливає скрипт
 const LS_PASS = 'scheduleApp:pass';        // пароль до графіка (зберігається на цьому пристрої)
 const PBKDF2_ITER = 600000;                // має збігатися зі скриптом
