@@ -37,6 +37,19 @@
   .status.err{color:var(--warn)}
   .status:empty{margin-top:0}
   #picker{display:none}
+  #picker .stepper{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+  #picker .stepbtn{width:44px;height:44px;flex:0 0 auto;padding:0;border-radius:10px;background:var(--panel);
+    color:var(--ink);border:1px solid var(--line);font-size:22px;line-height:1;font-weight:500}
+  #picker .stepbtn:hover{background:var(--accent-soft)}
+  #picker .stepbtn:disabled{opacity:.35;cursor:default;background:var(--panel)}
+  #picker .stepbtn:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+  #picker .steplabel{flex:1;text-align:center;font-weight:600;font-size:17px;word-break:break-word}
+  .searchbox{display:flex;align-items:center;gap:10px;height:44px;padding:0 12px;border:1px solid var(--line);
+    border-radius:10px;background:var(--panel);color:var(--muted)}
+  .searchbox:focus-within{outline:2px solid var(--accent);outline-offset:1px}
+  .searchbox svg{width:20px;height:20px;flex:0 0 auto}
+  .searchbox input[type=text]{flex:1;min-width:0;width:auto;border:none;padding:0;background:transparent;color:var(--ink)}
+  .searchbox input[type=text]:focus{outline:none}
   /* Нижня навігація */
   #bottomNav{display:none;position:fixed;left:0;right:0;bottom:0;z-index:60;background:var(--panel);
     border-top:1px solid var(--line);
@@ -151,16 +164,16 @@
   </div>
 
   <div class="panel" id="picker">
-    <div class="row2">
-      <div>
-        <label for="month">Місяць</label>
-        <select id="month"></select>
-      </div>
-      <div>
-        <label for="q">Працівник</label>
-        <input type="text" id="q" list="names" placeholder="Почніть вводити прізвище…" autocomplete="off">
-        <datalist id="names"></datalist>
-      </div>
+    <div class="stepper">
+      <button type="button" class="stepbtn" id="monthPrev" aria-label="Попередній місяць">&#8249;</button>
+      <div class="steplabel" id="monthLabel" aria-live="polite"></div>
+      <button type="button" class="stepbtn" id="monthNext" aria-label="Наступний місяць">&#8250;</button>
+    </div>
+    <select id="month" hidden aria-label="Місяць"></select>
+    <div class="searchbox">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
+      <input type="text" id="q" list="names" aria-label="Працівник" placeholder="Прізвище працівника" autocomplete="off">
+      <datalist id="names"></datalist>
     </div>
   </div>
 
@@ -798,6 +811,7 @@ function renderCalendar(group){
 }
 
 function renderView(){
+  updateMonthNav();
   const out = $('#calendars');
   out.innerHTML = '';
   const month = $('#month').value;
@@ -1101,6 +1115,21 @@ if(/[?&]news=1/.test(location.search)) openNews(syncP);   // посилання 
 
 $('#q').addEventListener('input', renderView);
 $('#month').addEventListener('change', renderView);
+
+function updateMonthNav(){
+  const sel = $('#month'), i = sel.selectedIndex, n = sel.options.length;
+  $('#monthLabel').textContent = i >= 0 ? sel.options[i].textContent : '';
+  $('#monthPrev').disabled = i <= 0;
+  $('#monthNext').disabled = i < 0 || i >= n - 1;
+}
+function stepMonth(d){
+  const sel = $('#month'), j = sel.selectedIndex + d;
+  if(j < 0 || j >= sel.options.length) return;
+  sel.selectedIndex = j;
+  renderView();
+}
+$('#monthPrev').addEventListener('click', () => stepMonth(-1));
+$('#monthNext').addEventListener('click', () => stepMonth(1));
 
 function updateColorModeBtn(){
   const btn = $('#colorModeBtn');
