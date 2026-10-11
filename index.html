@@ -83,7 +83,27 @@
   .cell.night{background:var(--night);border-color:var(--night)}
   .cell.night .d, .cell.night .t{color:#f2f2f2}
   .empty-note{font-size:13px;color:var(--muted)}
-  #sheetPick{display:none;margin-top:10px}
+  /* Панель даних: статус + вибір аркуша */
+  #filePanel{padding:12px 14px}
+  #filePanel:has(#fileStatus:empty):not(:has(#sheetPick[style*="block"])){display:none}
+  #filePanel .status{display:flex;align-items:flex-start;gap:8px;margin:0;font-size:13px;line-height:1.35;color:var(--muted)}
+  #filePanel .status::before{content:"";flex:0 0 8px;height:8px;margin-top:5px;border-radius:50%;background:var(--accent);
+    box-shadow:0 0 0 3px var(--accent-soft)}
+  #filePanel .status.err{color:var(--warn)}
+  #filePanel .status.has-icon{align-items:center;gap:8px}
+  #filePanel .status.has-icon::before{display:none}
+  #filePanel .sticon{flex:0 0 26px;width:26px;height:26px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;
+    background:var(--accent-soft);color:var(--accent)}
+  #filePanel .sticon svg{width:16px;height:16px;display:block}
+  #filePanel .status.upd .sticon{background:var(--accent);color:#fff}
+  #filePanel .status.err::before{background:var(--warn);box-shadow:0 0 0 3px var(--warn-soft)}
+  #filePanel .status:empty{display:none}
+  #sheetPick{display:none;margin-top:12px}
+  #sheetPick label{font-size:12px;font-weight:600;letter-spacing:.03em;text-transform:uppercase;margin-bottom:6px}
+  #sheetSel{height:44px;padding:0 40px 0 12px;border-radius:10px;border:1px solid var(--line);background-color:var(--panel);
+    font-size:16px;font-weight:600;font-family:inherit;color:var(--ink);-webkit-appearance:none;appearance:none;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%236b7a74' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat:no-repeat;background-position:right 12px center}
   .calhead{display:flex;justify-content:space-between;align-items:center;gap:8px}
   .calhead h2{margin:0}
   .pinbtn{background:none;border:none;font-size:20px;line-height:1;padding:2px 4px;cursor:pointer;color:var(--accent);flex:0 0 auto}
@@ -95,7 +115,7 @@
   .day-sec.fav{color:#111}
   .emp.fav{border-color:#111;background:#f2f2f2}
   .pinned-hdr{font-size:13px;color:var(--muted);font-weight:700;margin:0 0 8px;text-transform:uppercase;letter-spacing:.03em}
-  #clearBtn{display:none;margin-top:8px;background:transparent;color:var(--warn);border:1px solid var(--warn-soft);border-radius:6px;padding:6px 10px;font-size:12px}
+  #clearBtn{display:none;margin-top:12px;background:transparent;color:var(--warn);border:1.5px solid var(--warn);border-radius:8px;padding:10px 16px;font-size:14px}
   #clearBtn:hover{background:var(--warn-soft)}
 
   .cell.clickable{cursor:pointer;-webkit-tap-highlight-color:transparent}
@@ -146,13 +166,11 @@
 <div class="wrap">
   <h1>Графік працівників</h1>
 
-  <div class="panel">
-    <div class="status err" id="fileStatus"></div>
-    <button type="button" id="clearBtn">Очистити збережені дані</button>
-    <div class="row2" id="sheetPick">
-      <div>
-        <select id="sheetSel"></select>
-      </div>
+  <div class="panel" id="filePanel">
+    <div class="status err" id="fileStatus" role="status"></div>
+    <div id="sheetPick">
+      <label for="sheetSel">Аркуш</label>
+      <select id="sheetSel"></select>
     </div>
   </div>
 
@@ -160,6 +178,7 @@
     <h3 class="settings-title">Налаштування</h3>
     <div class="settings-row">
       <button type="button" id="colorModeBtn" class="toggle-btn"></button>
+      <button type="button" id="clearBtn">Очистити збережені дані</button>
     </div>
   </div>
 
@@ -647,7 +666,7 @@ function tryAutoLoad(){
       const opt = document.createElement('option'); opt.value = name; opt.textContent = name;
       sel.appendChild(opt);
     }
-    $('#sheetPick').style.display = WORKBOOK.SheetNames.length > 1 ? 'flex' : 'none';
+    $('#sheetPick').style.display = WORKBOOK.SheetNames.length > 1 ? 'block' : 'none';
     const savedSheet = localStorage.getItem(LS_SHEET);
     const sheetToUse = (savedSheet && WORKBOOK.SheetNames.includes(savedSheet)) ? savedSheet : WORKBOOK.SheetNames[0];
     sel.value = sheetToUse;
@@ -719,8 +738,16 @@ async function syncFromServer(){
     tryAutoLoad();
   }
   const lm = res.headers.get('last-modified');
-  fs.className = 'status';
-  fs.textContent = 'Дані з сервера' + (lm ? ' · оновлено ' + new Date(lm).toLocaleString('uk-UA') : '') + (changed ? '' : ' (без змін)');
+  fs.className = 'status has-icon ' + (changed ? 'upd' : 'ok');
+  fs.textContent = '';
+  const label = changed ? 'Є зміни' : 'Без змін';
+  const ico = document.createElement('span');
+  ico.className = 'sticon'; ico.title = label; ico.setAttribute('role', 'img'); ico.setAttribute('aria-label', label);
+  ico.innerHTML = changed
+    ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 0 0-14.5-4.5L4 8"/><path d="M4 4v4h4"/><path d="M4 13a8 8 0 0 0 14.5 4.5L20 16"/><path d="M20 20v-4h-4"/></svg>'
+    : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.7 2.7L16 9.5"/></svg>';
+  fs.appendChild(ico);
+  if(lm){ const t = document.createElement('span'); t.textContent = new Date(lm).toLocaleString('uk-UA'); fs.appendChild(t); }
 }
 const syncP = syncFromServer();
 // при поверненні в застосунок — оновлюємо, якщо минуло більше 10 хвилин
