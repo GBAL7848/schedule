@@ -225,46 +225,21 @@
   .news.low .nago{background:#fbdad2;color:#7a2410}
   .news .nauthor{display:block;font-size:16px;font-weight:700;margin:0 0 4px;word-break:break-word}
   .news p{font-size:14px;line-height:1.45;color:var(--muted)}
-  /* Сторінка дня: пошук і фільтри */
-  .dayctl{display:flex;gap:8px;margin:14px 0 6px}
-  .dayctl .searchbox{flex:1}
-  .filtbtn{position:relative;width:44px;height:44px;padding:0;flex:0 0 auto;border-radius:14px;background:var(--panel);
-    color:var(--ink);border:1px solid var(--line);display:flex;align-items:center;justify-content:center}
-  .filtbtn:hover{background:var(--accent-soft)}
-  .filtbtn svg{width:20px;height:20px;display:block}
-  .filtbtn .badge{position:absolute;top:-5px;right:-5px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;
-    background:var(--accent);color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center}
-  .filtbtn .badge[hidden]{display:none}
-  #filterOverlay{display:none;position:fixed;inset:0;z-index:70}
-  #filterOverlay.open{display:block}
-  .fscrim{position:absolute;inset:0;background:rgba(18,20,26,.45)}
-  .fsheet{position:absolute;left:0;right:0;bottom:0;max-width:520px;margin:0 auto;background:var(--panel);
-    border-radius:28px 28px 0 0;padding:10px 16px calc(20px + env(safe-area-inset-bottom,0px));max-height:90vh;overflow:auto}
-  .fgrab{width:40px;height:4px;border-radius:2px;background:#c9cedb;margin:0 auto 12px}
-  .fhead{display:flex;align-items:center;justify-content:space-between;margin:0 4px 12px}
-  .fhead h2{margin:0;font-size:22px;font-weight:800}
-  .linkbtn{background:none;color:var(--accent);border:none;height:44px;padding:0 8px;font-size:14px;font-weight:700}
-  .linkbtn:hover{background:none;text-decoration:underline}
-  .flabel{font-size:13px;font-weight:700;color:var(--muted);margin:0 4px 8px}
-  .fchips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
-  .fchip{height:40px;padding:0 14px;border-radius:20px;background:var(--panel);color:var(--ink);border:1px solid var(--line);
-    font-size:13px;font-weight:700;display:inline-flex;align-items:center;gap:8px}
+  /* Сторінка дня: пошук і фільтри-чипи */
+  .dayctl{margin:14px 0 0}
+  .fchips-row{display:flex;gap:8px;overflow-x:auto;margin:10px -4px 0;padding:2px 4px 6px;scrollbar-width:none}
+  .fchips-row::-webkit-scrollbar{display:none}
+  .fchip{flex:0 0 auto;height:40px;padding:0 14px;border-radius:20px;background:var(--panel);color:var(--ink);border:1px solid var(--line);
+    font-size:13px;font-weight:700;display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
   .fchip:hover{background:var(--accent-soft)}
   .fchip.on{background:var(--ink);border-color:var(--ink);color:#fff}
   .fchip.on:hover{background:#2a2f3d}
   .fdot{width:10px;height:10px;border-radius:50%;display:block}
   .fcount{opacity:.65;font-weight:700}
-  .frow{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:56px;padding:0 4px;border-top:1px solid var(--line)}
-  .frow b{display:block;font-weight:700}
-  .frow small{display:block;font-size:13px;color:var(--muted)}
-  .switch{width:48px;height:28px;padding:0;border-radius:14px;background:#c9cedb;border:none;position:relative;flex:0 0 auto}
-  .switch::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;transition:left .15s}
-  .switch.on{background:var(--accent)}
-  .switch.on::after{left:23px}
-  .switch:hover{background:#c9cedb}
-  .switch.on:hover{background:var(--accent)}
-  .applybtn{width:100%;height:52px;margin-top:10px;border-radius:16px;background:var(--ink);color:#fff;font-size:16px;font-weight:700}
-  .applybtn:hover{background:#2a2f3d}
+  .fnote{display:flex;align-items:center;justify-content:space-between;font-size:13px;font-weight:600;color:var(--muted);margin:4px 4px 0}
+  .fnote[hidden]{display:none}
+  .linkbtn{background:none;color:var(--accent);border:none;height:44px;padding:0 8px;font-size:14px;font-weight:700}
+  .linkbtn:hover{background:none;text-decoration:underline}
 </style>
 </head>
 <body>
@@ -318,11 +293,9 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
         <input type="text" id="dayQ" placeholder="Прізвище" aria-label="Пошук за прізвищем" autocomplete="off">
       </div>
-      <button type="button" id="dayFiltBtn" class="filtbtn" aria-label="Фільтри">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
-        <span class="badge" id="dayFiltBadge" hidden></span>
-      </button>
     </div>
+    <div class="fchips-row" id="dayChips" role="group" aria-label="Фільтри"></div>
+    <div class="fnote" id="dayFiltNote" hidden><span>Фільтр діє на всі дні</span><button type="button" id="dayFiltReset" class="linkbtn">Скинути</button></div>
     <div id="dayList"></div>
   </div>
 </div>
@@ -333,18 +306,6 @@
     <p class="day-sub" id="newsStatus"></p>
     <h1 id="newsTitle">Новини</h1>
     <div id="newsList"></div>
-  </div>
-</div>
-
-<div id="filterOverlay" aria-hidden="true">
-  <div class="fscrim" id="fScrim"></div>
-  <div class="fsheet" role="dialog" aria-modal="true" aria-label="Фільтри">
-    <div class="fgrab"></div>
-    <div class="fhead"><h2>Фільтри</h2><button type="button" id="fReset" class="linkbtn">Скинути</button></div>
-    <div class="flabel">Зміна</div><div class="fchips" id="fShift"></div>
-    <div class="flabel">Група</div><div class="fchips" id="fGroup"></div>
-    <div class="frow"><div><b>Тільки улюблені</b><small>Приховати інших працівників</small></div><button type="button" id="fFav" class="switch" role="switch" aria-checked="false" aria-label="Тільки улюблені"></button></div>
-    <button type="button" id="fApply" class="applybtn">Показати</button>
   </div>
 </div>
 
@@ -468,7 +429,7 @@ const LS_FAVS = 'scheduleApp:favs';
 const LS_RECORDS = 'scheduleApp:records'; // кеш структурованих даних (лікар/місяць/день/колір/текст)
 const LS_COLOR_MODE = 'scheduleApp:colorMode';
 let pendingMonth = null;
-let dayFilter = {q:'', shifts:new Set(), groups:new Set(), favOnly:false}; // фільтри сторінки дня
+let dayFilter = {q:'', sel:new Set(), favOnly:false}; // фільтри сторінки дня
 let dayCounts = {}, dayShown = 0;
 let dayCtx = null; // {month, day} відкритої сторінки дня; оголошено тут, бо renderView викликається під час завантаження
 // 'normalized' — звичний вигляд (чорний/зелений/сірий відпустка/бордовий триніті);
@@ -1061,15 +1022,15 @@ function renderDayPage(){
   // Групи: нічна (чорні) — окремо; «триніті» — окремо; решта — окремо; відпустка — окремо.
   const favs = [], others = [], blacks = [], trinity = [], care = [], onVacation = [];
   const favList = getFavs();
-  const counts = {day:0, night:0, trinity:0, care:0, vacation:0};
+  const counts = {day:0, night:0, trinity:0, care:0, vacation:0, fav:0};
   const q = dayFilter.q.trim().toLowerCase();
-  const sel = new Set([...dayFilter.shifts, ...dayFilter.groups]);
+  const sel = dayFilter.sel;
   for(const g of groups){
     const c = g.cells.get(day);
     if(!(c.text || c.color)) continue;
     const isFavG = favList.includes(g.doctor.trim().toLowerCase());
     const cat = isVacationCell(c) ? 'vacation' : isCareCell(c) ? 'care' : isBlackCell(c) ? 'night' : isTrinityCell(c) ? 'trinity' : 'day';
-    counts[cat]++;                                              // лічильники — до фільтрів
+    counts[cat]++; if(isFavG) counts.fav++;                     // лічильники — до фільтрів
     if(q && !g.doctor.toLowerCase().includes(q)) continue;      // пошук за прізвищем
     if(sel.size && !sel.has(cat)) continue;                     // зміна / група (збіг з будь-якою вибраною)
     if(dayFilter.favOnly && !isFavG) continue;                  // тільки улюблені
@@ -1155,7 +1116,7 @@ function hideDayPage(){
   page.setAttribute('aria-hidden', 'true');
   document.body.style.overflow = '';
   dayCtx = null;
-  resetDayFilter();
+  resetDaySearch();
 }
 
 // Закриваємо одразу (без очікування popstate — саме воно давало затримку), а запис
@@ -1175,47 +1136,43 @@ window.addEventListener('popstate', () => {
 });
 $('#dayBack').addEventListener('click', closeDayPage);
 
-/* ---- Пошук і фільтри сторінки дня ---- */
-const FILTER_SHIFTS = [['day','День','#d98a00'], ['night','Ніч','#4f5bd5']];
-const FILTER_GROUPS = [['trinity','Триніті','#4c1925'], ['care','Care','#0f766e'], ['vacation','Відпустка','#9aa1b5']];
-function activeFilterCount(){ return dayFilter.shifts.size + dayFilter.groups.size + (dayFilter.favOnly ? 1 : 0); }
-function buildChips(box, defs, set){
-  box.innerHTML = '';
-  for(const [key, label, color] of defs){
-    const on = set.has(key);
+/* ---- Пошук і фільтри сторінки дня (чипи) ---- */
+const FILTER_DEFS = [['day','День','#d98a00'], ['night','Ніч','#4f5bd5'], ['trinity','Триніті','#4c1925'], ['care','Care','#0f766e'], ['vacation','Відпустка','#9aa1b5']];
+const LS_DAYFILTER = 'scheduleApp:dayFilter';
+function saveDayFilter(){ try{ localStorage.setItem(LS_DAYFILTER, JSON.stringify({sel:[...dayFilter.sel], favOnly:dayFilter.favOnly})); } catch(err){} }
+function loadDayFilter(){
+  try{
+    const o = JSON.parse(localStorage.getItem(LS_DAYFILTER) || 'null');
+    if(o){ dayFilter.sel = new Set((o.sel || []).filter(k => FILTER_DEFS.some(d => d[0] === k))); dayFilter.favOnly = !!o.favOnly; }
+  } catch(err){}
+}
+function resetDaySearch(){ dayFilter.q = ''; $('#dayQ').value = ''; }
+function updateFilterUI(){
+  const box = $('#dayChips'); box.innerHTML = '';
+  const mk = (label, count, on, color, onClick) => {
     const b = document.createElement('button');
     b.type = 'button'; b.className = 'fchip' + (on ? ' on' : ''); b.setAttribute('aria-pressed', String(on));
-    const dot = document.createElement('span'); dot.className = 'fdot'; dot.style.background = color;
-    const n = document.createElement('span'); n.className = 'fcount'; n.textContent = dayCounts[key] || 0;
-    b.appendChild(dot); b.appendChild(document.createTextNode(label)); b.appendChild(n);
-    b.addEventListener('click', () => { if(set.has(key)) set.delete(key); else set.add(key); renderDayPage(); });
+    if(color){ const d = document.createElement('span'); d.className = 'fdot'; d.style.background = color; b.appendChild(d); }
+    b.appendChild(document.createTextNode(label));
+    const n = document.createElement('span'); n.className = 'fcount'; n.textContent = count; b.appendChild(n);
+    b.addEventListener('click', onClick);
     box.appendChild(b);
+  };
+  const total = FILTER_DEFS.reduce((a, d) => a + (dayCounts[d[0]] || 0), 0);
+  const none = !dayFilter.sel.size && !dayFilter.favOnly;
+  mk('Усі', total, none, null, () => { dayFilter.sel.clear(); dayFilter.favOnly = false; saveDayFilter(); renderDayPage(); });
+  for(const [key, label, color] of FILTER_DEFS){
+    mk(label, dayCounts[key] || 0, dayFilter.sel.has(key), color, () => {
+      if(dayFilter.sel.has(key)) dayFilter.sel.delete(key); else dayFilter.sel.add(key);
+      saveDayFilter(); renderDayPage();
+    });
   }
-}
-function updateFilterUI(){
-  const n = activeFilterCount();
-  const badge = $('#dayFiltBadge'); badge.textContent = n; badge.hidden = !n;
-  $('#fApply').textContent = 'Показати · ' + dayShown;
-  buildChips($('#fShift'), FILTER_SHIFTS, dayFilter.shifts);
-  buildChips($('#fGroup'), FILTER_GROUPS, dayFilter.groups);
-  const sw = $('#fFav'); sw.setAttribute('aria-checked', String(dayFilter.favOnly)); sw.classList.toggle('on', dayFilter.favOnly);
-}
-function openFilterSheet(){ $('#filterOverlay').classList.add('open'); $('#filterOverlay').setAttribute('aria-hidden', 'false'); }
-function closeFilterSheet(){ $('#filterOverlay').classList.remove('open'); $('#filterOverlay').setAttribute('aria-hidden', 'true'); }
-function resetDayFilter(){
-  dayFilter = {q:'', shifts:new Set(), groups:new Set(), favOnly:false};
-  $('#dayQ').value = '';
-  closeFilterSheet();
+  mk('♥ Улюблені', dayCounts.fav || 0, dayFilter.favOnly, null, () => { dayFilter.favOnly = !dayFilter.favOnly; saveDayFilter(); renderDayPage(); });
+  $('#dayFiltNote').hidden = none;
 }
 $('#dayQ').addEventListener('input', e => { dayFilter.q = e.target.value; renderDayPage(); });
-$('#dayFiltBtn').addEventListener('click', openFilterSheet);
-$('#fScrim').addEventListener('click', closeFilterSheet);
-$('#fApply').addEventListener('click', closeFilterSheet);
-$('#fReset').addEventListener('click', () => {
-  dayFilter.shifts.clear(); dayFilter.groups.clear(); dayFilter.favOnly = false; renderDayPage();
-});
-$('#fFav').addEventListener('click', () => { dayFilter.favOnly = !dayFilter.favOnly; renderDayPage(); });
-document.addEventListener('keydown', e => { if(e.key === 'Escape') closeFilterSheet(); });
+$('#dayFiltReset').addEventListener('click', () => { dayFilter.sel.clear(); dayFilter.favOnly = false; saveDayFilter(); renderDayPage(); });
+loadDayFilter();
 
 // Свайп вліво по сторінці дня — повернення на головну.
 (function(){
