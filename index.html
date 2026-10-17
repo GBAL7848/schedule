@@ -4,6 +4,16 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, minimum-scale=1, maximum-scale=5, user-scalable=yes">
 <title>Графік працівників — календар</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="shortcut icon" href="icons/favicon.ico">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="theme-color" content="#4f5bd5">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Графік">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1174,24 +1184,6 @@ $('#dayQ').addEventListener('input', e => { dayFilter.q = e.target.value; render
 $('#dayFiltReset').addEventListener('click', () => { dayFilter.sel.clear(); dayFilter.favOnly = false; saveDayFilter(); renderDayPage(); });
 loadDayFilter();
 
-// Свайп вліво по сторінці дня — повернення на головну.
-(function(){
-  const page = $('#dayPage');
-  let sx = 0, sy = 0, tracking = false;
-  page.addEventListener('touchstart', e => {
-    if(e.touches.length !== 1){ tracking = false; return; }
-    sx = e.touches[0].clientX; sy = e.touches[0].clientY; tracking = true;
-  }, {passive:true});
-  page.addEventListener('touchend', e => {
-    if(!tracking) return;
-    tracking = false;
-    const t = e.changedTouches[0];
-    const dx = t.clientX - sx, dy = t.clientY - sy;
-    if(dx < -70 && Math.abs(dx) > Math.abs(dy) * 1.5) closeDayPage();
-  }, {passive:true});
-  page.addEventListener('touchcancel', () => { tracking = false; }, {passive:true});
-})();
-
 /* ---- Новини: відгуки Google Maps за тиждень. Скрипт публікує їх у news.enc
    (той самий пароль, що й для графіка). Сторінка висувається так само, як сторінка дня. ---- */
 const LS_NEWS = 'scheduleApp:news';
@@ -1288,22 +1280,6 @@ window.addEventListener('popstate', () => {
 });
 $('#navNews').addEventListener('click', () => { closeSettings(); if(!newsOpen) openNews(); });
 $('#newsBack').addEventListener('click', closeNews);
-(function(){                                  // свайп вліво — назад, як на сторінці дня
-  const page = $('#newsPage');
-  let sx = 0, sy = 0, tracking = false;
-  page.addEventListener('touchstart', e => {
-    if(e.touches.length !== 1){ tracking = false; return; }
-    sx = e.touches[0].clientX; sy = e.touches[0].clientY; tracking = true;
-  }, {passive:true});
-  page.addEventListener('touchend', e => {
-    if(!tracking) return;
-    tracking = false;
-    const t = e.changedTouches[0];
-    const dx = t.clientX - sx, dy = t.clientY - sy;
-    if(dx < -70 && Math.abs(dx) > Math.abs(dy) * 1.5) closeNews();
-  }, {passive:true});
-  page.addEventListener('touchcancel', () => { tracking = false; }, {passive:true});
-})();
 if(/[?&]news=1/.test(location.search)) openNews(syncP);   // посилання з меню трея
 
 $('#q').addEventListener('input', renderView);
