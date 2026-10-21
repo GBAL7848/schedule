@@ -1,0 +1,102 @@
+{
+  "version": 2,
+  "description": "Ключові слова, за якими програма розпізнає групи та написи в комірках графіка. Редагуйте списки words; решту не чіпайте.",
+  "categories": {
+    "trinity": {
+      "label": "Триніті (бордовий колір, окрема група на сторінці дня)",
+      "words": [
+        {
+          "word": "триніті",
+          "match": "fuzzy",
+          "note": "допускає одруки"
+        },
+        {
+          "word": "triniti",
+          "match": "fuzzy",
+          "note": "англійською"
+        },
+        {
+          "word": "trinity",
+          "match": "fuzzy",
+          "note": "англійською"
+        }
+      ]
+    },
+    "care": {
+      "label": "Care / кейр (окрема група на сторінці дня)",
+      "words": [
+        {
+          "word": "care",
+          "match": "exact",
+          "note": "лише слово care; без допуску, щоб не ловити car, card, case"
+        },
+        {
+          "word": "кейр",
+          "match": "prefix",
+          "note": "кейр, кейра, кейру…"
+        }
+      ]
+    },
+    "vacation": {
+      "label": "Відпустка (сірий колір, не рахується змінами)",
+      "words": [
+        {
+          "word": "відпустка",
+          "match": "fuzzy",
+          "note": "допускає одруки"
+        }
+      ]
+    },
+    "notShift": {
+      "label": "Не є зміною: не входить до «змін: N»",
+      "words": [
+        {
+          "word": "конф",
+          "match": "prefix",
+          "note": "конференція, конф, конфа"
+        },
+        {
+          "word": "коф",
+          "match": "prefix",
+          "note": "коф (скорочення)"
+        },
+        {
+          "word": "ортонейро",
+          "match": "prefix",
+          "note": "ортонейро…"
+        },
+        {
+          "word": "vetspace",
+          "match": "contains",
+          "note": "VetSpace, Vet Space"
+        },
+        {
+          "word": "ветспейс",
+          "match": "contains",
+          "note": "ветспейс, вет спейс"
+        },
+        {
+          "word": "vetseminar",
+          "match": "contains",
+          "note": "VetSeminar, Vet Seminar"
+        },
+        {
+          "word": "ветсемінар",
+          "match": "contains",
+          "note": "ветсемінар"
+        },
+        {
+          "word": "ветсемінра",
+          "match": "contains",
+          "note": "поширений одрук"
+        }
+      ]
+    }
+  },
+  "matchTypes": {
+    "prefix": "слово в комірці ПОЧИНАЄТЬСЯ з цього (конф → конфа, конференція)",
+    "exact": "слово в комірці збігається повністю",
+    "contains": "текст комірки без пробілів і розділових знаків МІСТИТЬ це (vetspace → Vet Space)",
+    "fuzzy": "слово схоже з допуском на одруки; лише для слів від 6 літер"
+  }
+}
