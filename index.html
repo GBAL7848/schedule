@@ -250,6 +250,11 @@
   .fnote[hidden]{display:none}
   .linkbtn{background:none;color:var(--accent);border:none;height:44px;padding:0 8px;font-size:14px;font-weight:700}
   .linkbtn:hover{background:none;text-decoration:underline}
+  .sclr{width:36px;height:36px;padding:0;margin:0 -6px 0 0;border-radius:10px;background:none;color:var(--muted);flex:0 0 auto;
+    display:flex;align-items:center;justify-content:center}
+  .sclr:hover{background:var(--accent-soft)}
+  .sclr[hidden]{display:none}
+  .sclr svg{width:18px;height:18px;display:block}
 </style>
 </head>
 <body>
@@ -285,8 +290,8 @@
     <select id="month" hidden aria-label="Місяць"></select>
     <div class="searchbox">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
-      <input type="text" id="q" list="names" aria-label="Працівник" placeholder="Прізвище працівника" autocomplete="off">
-      <datalist id="names"></datalist>
+      <input type="text" id="q" aria-label="Працівник" placeholder="Прізвище працівника" autocomplete="off">
+      <button type="button" class="sclr" id="qClear" aria-label="Очистити пошук" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     </div>
   </div>
 
@@ -302,6 +307,7 @@
       <div class="searchbox">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
         <input type="text" id="dayQ" placeholder="Прізвище" aria-label="Пошук за прізвищем" autocomplete="off">
+        <button type="button" class="sclr" id="dayQClear" aria-label="Очистити пошук" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
       </div>
     </div>
     <div class="fchips-row" id="dayChips" role="group" aria-label="Фільтри"></div>
@@ -355,9 +361,7 @@ function resolveThemeColor(fill){
   return '#' + applyTint(base, fill.tint || 0);
 }
 const TRINITY_PURPLE = '#4c1925'; // колір для комірок зі словом "триніті" (з допуском на одруки)
-const TRINITY_WORD = 'триніті';
 const VACATION_GRAY = '#9e9e9e'; // колір діапазону "відпустка"
-const VACATION_WORD = 'відпустка';
 
 // Відстань Левенштейна — щоб ловити ключові слова навіть з одрукою (пропущена/
 // зайва/переставлена літера), а не лише точний збіг.
@@ -390,16 +394,78 @@ function hasFuzzyWord(text, targetWord){
   }
   return false;
 }
-// «Триніті» — кирилицею та англійською (triniti / trinity), з допуском на одруки.
-const TRINITY_WORDS = [TRINITY_WORD, 'triniti', 'trinity'];
-function hasTrinityWord(text){ return TRINITY_WORDS.some(w => hasFuzzyWord(text, w)); }
-// «Care / кейр» — слово коротке, тому без допуску на одруки (інакше ловило б car, card, case…).
-function hasCareWord(text){
-  if(!text) return false;
-  return text.toLowerCase().split(/[^a-zа-яіїєґ']+/i).filter(Boolean)
-    .some(w => w === 'care' || w.startsWith('кейр'));
+/* ---- Правила слів (файл rules.json) ----
+   Усі ключові слова живуть у rules.json поруч з index.html (редагується на GitHub):
+   trinity — «Триніті», care — «Care/кейр», vacation — «Відпустка», notShift — написи, що не є зміною.
+   Програма завантажує файл при кожному запуску, кешує його в localStorage для роботи без мережі,
+   а якщо файла немає (або в ньому немає якоїсь категорії) — бере вбудований список нижче.
+   Типи збігу: prefix — слово починається з…, exact — слово збігається, contains — текст комірки
+   без пробілів містить…, fuzzy — слово схоже з допуском на одруки (для слів від 6 літер). */
+const LS_RULES = 'scheduleApp:rules';
+const RULE_CATEGORIES = ['trinity', 'care', 'vacation', 'notShift'];
+const DEFAULT_RULES = {version:2, categories:{
+  trinity:  {words:[{word:'триніті', match:'fuzzy'}, {word:'triniti', match:'fuzzy'}, {word:'trinity', match:'fuzzy'}]},
+  care:     {words:[{word:'care', match:'exact'}, {word:'кейр', match:'prefix'}]},
+  vacation: {words:[{word:'відпустка', match:'fuzzy'}]},
+  notShift: {words:[
+    {word:'конф', match:'prefix'}, {word:'коф', match:'prefix'}, {word:'ортонейро', match:'prefix'},
+    {word:'vetspace', match:'contains'}, {word:'ветспейс', match:'contains'},
+    {word:'vetseminar', match:'contains'}, {word:'ветсемінар', match:'contains'}, {word:'ветсемінра', match:'contains'}
+  ]}
+}};
+const collapseText = t => (t || '').toLowerCase().replace(/[^a-zа-яіїєґ0-9]+/g, '');
+function compileRules(j){
+  // підтримуємо і новий формат (categories), і старий (лише notShift)
+  const cats = (j && j.categories) || (j && j.notShift ? {notShift: j.notShift} : {});
+  const out = {};
+  for(const k of RULE_CATEGORIES){
+    const list = cats[k] && Array.isArray(cats[k].words) ? cats[k].words : null;
+    out[k] = list
+      ? list.filter(r => r && typeof r.word === 'string' && r.word.trim())
+            .map(r => ({word: r.word.trim().toLowerCase(), match: ['prefix','exact','fuzzy','contains'].includes(r.match) ? r.match : 'prefix'}))
+      : null;                                  // категорії немає у файлі → візьмемо значення за замовчуванням
+  }
+  return out;
 }
-function hasVacationWord(text){ return hasFuzzyWord(text, VACATION_WORD); }
+function withDefaults(c){
+  const d = compileRules(DEFAULT_RULES);
+  for(const k of RULE_CATEGORIES) if(!c[k]) c[k] = d[k];
+  return c;
+}
+let RULES = withDefaults(compileRules(DEFAULT_RULES));
+try{ const saved = JSON.parse(localStorage.getItem(LS_RULES) || 'null'); if(saved) RULES = withDefaults(compileRules(saved)); } catch(err){}
+function hasCategoryWord(cat, text){
+  if(!text) return false;
+  const low = text.toLowerCase();
+  const tokens = low.split(/[^a-zа-яіїєґ']+/i).filter(Boolean);
+  const flat = collapseText(low);
+  return (RULES[cat] || []).some(r => {
+    if(r.match === 'exact') return tokens.includes(r.word);
+    if(r.match === 'fuzzy') return hasFuzzyWord(text, r.word);
+    if(r.match === 'contains') return flat.includes(collapseText(r.word));
+    return tokens.some(w => w.startsWith(r.word));                 // prefix
+  });
+}
+function hasTrinityWord(text){ return hasCategoryWord('trinity', text); }
+function hasCareWord(text){ return hasCategoryWord('care', text); }
+function hasVacationWord(text){ return hasCategoryWord('vacation', text); }
+function isNonShiftText(text){ return hasCategoryWord('notShift', text); }   // конференція, семінар…
+async function syncRules(){
+  try{
+    const res = await fetch('rules.json', {cache:'no-cache'});
+    if(!res.ok) return;
+    const j = await res.json();
+    const next = withDefaults(compileRules(j));
+    try{ localStorage.setItem(LS_RULES, JSON.stringify(j)); } catch(err){}
+    if(JSON.stringify(next) === JSON.stringify(RULES)) return;     // нічого не змінилося
+    RULES = next;
+    if(WORKBOOK){                                                  // колір «Триніті» та відпустка визначаються під час розбору — розбираємо заново
+      const fs = $('#fileStatus'), keepCls = fs.className, keepHtml = fs.innerHTML;
+      try{ pendingMonth = $('#month').value || pendingMonth; loadSheet($('#sheetSel').value); } catch(err){}
+      fs.className = keepCls; fs.innerHTML = keepHtml;
+    } else { try{ renderView(); } catch(err){} }
+  } catch(err){}
+}
 
 // Чорний лишається чорним, білий/прозорий трактується як порожня комірка (bg=null),
 // будь-який інший колір заливки зводиться до єдиного зеленого — щоб календар не
@@ -751,16 +817,6 @@ function initPicker(){
   if(pendingMonth && MONTHS_ORDER.includes(pendingMonth)) monthSel.value = pendingMonth;
   pendingMonth = null;
 
-  const dl = $('#names');
-  dl.innerHTML = '';
-  const seen = new Set();
-  for(const r of RECORDS){
-    if(!seen.has(r.doctor)){
-      seen.add(r.doctor);
-      const opt = document.createElement('option'); opt.value = r.doctor;
-      dl.appendChild(opt);
-    }
-  }
   $('#bottomNav').style.display = 'block';
   $('#picker').style.display = 'block';
   $('#calendars').style.display = 'block';
@@ -910,7 +966,7 @@ function renderCalendar(group){
   // тому в лічильник не входить. Рахуємо за нормалізованим color, а не rawColor,
   // щоб результат не залежав від режиму показу кольорів.
   const shiftCount = [...group.cells.values()]
-    .filter(c => (c.text || c.color) && c.color !== VACATION_GRAY && !hasVacationWord(c.text)).length;
+    .filter(c => (c.text || c.color) && c.color !== VACATION_GRAY && !hasVacationWord(c.text) && !isNonShiftText(c.text)).length;
   const who = document.createElement('p'); who.className = 'who';
   who.textContent = (group.month ? group.month + ' · ' : '') + (group.section || 'Графік') + ' · змін: ' + shiftCount;
   wrap.appendChild(who);
@@ -1156,8 +1212,9 @@ function loadDayFilter(){
     if(o){ dayFilter.sel = new Set((o.sel || []).filter(k => FILTER_DEFS.some(d => d[0] === k))); dayFilter.favOnly = !!o.favOnly; }
   } catch(err){}
 }
-function resetDaySearch(){ dayFilter.q = ''; $('#dayQ').value = ''; }
+function resetDaySearch(){ dayFilter.q = ''; $('#dayQ').value = ''; $('#dayQClear').hidden = true; }
 function updateFilterUI(){
+  $('#dayQClear').hidden = !dayFilter.q;
   const box = $('#dayChips'); box.innerHTML = '';
   const mk = (label, count, on, color, onClick) => {
     const b = document.createElement('button');
@@ -1180,7 +1237,8 @@ function updateFilterUI(){
   mk('♥ Улюблені', dayCounts.fav || 0, dayFilter.favOnly, null, () => { dayFilter.favOnly = !dayFilter.favOnly; saveDayFilter(); renderDayPage(); });
   $('#dayFiltNote').hidden = none;
 }
-$('#dayQ').addEventListener('input', e => { dayFilter.q = e.target.value; renderDayPage(); });
+$('#dayQ').addEventListener('input', e => { dayFilter.q = e.target.value; $('#dayQClear').hidden = !dayFilter.q; renderDayPage(); });
+$('#dayQClear').addEventListener('click', () => { resetDaySearch(); renderDayPage(); $('#dayQ').focus(); });
 $('#dayFiltReset').addEventListener('click', () => { dayFilter.sel.clear(); dayFilter.favOnly = false; saveDayFilter(); renderDayPage(); });
 loadDayFilter();
 
@@ -1282,7 +1340,10 @@ $('#navNews').addEventListener('click', () => { closeSettings(); if(!newsOpen) o
 $('#newsBack').addEventListener('click', closeNews);
 if(/[?&]news=1/.test(location.search)) openNews(syncP);   // посилання з меню трея
 
-$('#q').addEventListener('input', renderView);
+$('#q').addEventListener('input', () => { $('#qClear').hidden = !$('#q').value; renderView(); });
+$('#qClear').addEventListener('click', () => {
+  const q = $('#q'); q.value = ''; $('#qClear').hidden = true; renderView(); q.focus();
+});
 $('#month').addEventListener('change', renderView);
 
 function updateMonthNav(){
@@ -1388,6 +1449,7 @@ $('#manualOff').addEventListener('click', () => {
   location.reload();
 });
 showManualStatus();
+syncRules();
 </script>
 </body>
 </html>
