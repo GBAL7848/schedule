@@ -255,6 +255,93 @@
   .sclr:hover{background:var(--accent-soft)}
   .sclr[hidden]{display:none}
   .sclr svg{width:18px;height:18px;display:block}
+  /* Екран «Правила» */
+  #rulesPage{display:none;position:fixed;inset:0;z-index:58;background:var(--bg);overflow-y:auto;
+    padding:calc(16px + env(safe-area-inset-top,0px)) max(12px,env(safe-area-inset-right,0px)) calc(110px + env(safe-area-inset-bottom,0px)) max(12px,env(safe-area-inset-left,0px))}
+  #rulesPage.open{display:block}
+  #rulesPage .wrap{max-width:920px;margin:0 auto}
+  #rulesPage h1{font-size:clamp(28px,9vw,34px);font-weight:800;line-height:1.1;margin:14px 0 4px}
+  .rcard{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:14px;margin-top:12px}
+  .rcard.off .rwords,.rcard.off .rsum{opacity:.5}
+  .rhead{display:flex;align-items:center;gap:10px;justify-content:space-between}
+  .rname{font-size:16px;font-weight:700}
+  #rulesPage input.rname-input{flex:1;min-width:0;width:auto;height:44px;border:1px solid var(--line);border-radius:12px;padding:0 12px;font-size:16px;font-weight:700}
+  .rsum{font-size:13px;color:var(--muted);margin:2px 0 10px}
+  .rwords{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+  .rempty{font-size:13px;color:var(--muted)}
+  .wchip{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 4px 0 12px;border-radius:18px;background:var(--accent-soft);font-size:13px}
+  .wchip i{font-style:normal;color:var(--muted);font-size:12px}
+  .wdel{width:32px;height:32px;padding:0;border-radius:16px;background:none;color:var(--muted);font-size:18px;line-height:1}
+  .wdel:hover{background:var(--panel);color:var(--ink)}
+  .radd{display:flex;gap:6px;flex-wrap:wrap}
+  #rulesPage input.wnew{flex:1 1 140px;min-width:0;width:auto;height:44px;border:1px solid var(--line);border-radius:12px;padding:0 12px;font-size:16px}
+  #rulesPage select.wtype{flex:1 1 150px;min-width:0;height:44px;border:1px solid var(--line);border-radius:12px;padding:0 8px;font-size:14px;background:var(--panel);color:var(--ink)}
+  .wadd{height:44px;padding:0 16px;border-radius:12px}
+  .rchk{display:flex;align-items:center;gap:10px;min-height:44px;font-size:14px;font-weight:600}
+  .rchk input[type=checkbox]{width:20px;height:20px;margin:0}
+  .rgrp{display:flex;gap:8px;align-items:center;margin:0 0 6px}
+  #rulesPage .rgrp input[type=text]{flex:1;min-width:0;width:auto;height:44px;border:1px solid var(--line);border-radius:12px;padding:0 12px;font-size:16px}
+  #rulesPage .rgrp input[type=color]{width:44px;height:44px;padding:2px;border:1px solid var(--line);border-radius:12px;background:var(--panel)}
+  .rsw{position:relative;display:inline-block;width:48px;height:28px;flex:0 0 auto}
+  .rsw input{position:absolute;inset:0;opacity:0;margin:0;width:100%;height:100%;cursor:pointer}
+  .rsw span{position:absolute;inset:0;border-radius:14px;background:#c9cedb;transition:background .15s;pointer-events:none}
+  .rsw span::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;transition:left .15s}
+  .rsw input:checked+span{background:var(--accent)}
+  .rsw input:checked+span::after{left:23px}
+  .rsw input:focus-visible+span{outline:2px solid var(--accent);outline-offset:2px}
+  .ractions{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:16px}
+  .rlinks{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:6px}
+  .rdel{background:none;color:var(--warn);border:none;height:44px;padding:0 8px;font-size:14px;font-weight:700}
+  .rdel:hover{background:none;text-decoration:underline}
+  .rrest{background:none;color:var(--accent);border:none;height:44px;padding:0 8px;font-size:14px;font-weight:700}
+  .rrest:hover{background:none;text-decoration:underline}
+  /* Помітки до днів */
+  .cell{position:relative}
+  /* позначка помітки — кільце навколо числа дня (колір кільця = колір числа, тож видно і на темних заливках) */
+  .cell.hasnote .d{display:flex;align-items:center;justify-content:center;box-sizing:border-box;min-width:1.8em;height:1.8em;
+    padding:0 .2em;border-radius:50%;box-shadow:inset 0 0 0 2px currentColor;line-height:1}
+  .dnotes{margin:14px 0 0;background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:12px 12px 14px}
+  .nhead{display:flex;align-items:center;gap:8px;margin:0 4px 8px;font-size:15px}
+  .ncount{min-width:22px;height:22px;padding:0 6px;border-radius:11px;background:var(--accent-soft);font-size:12px;font-weight:700;display:inline-flex;align-items:center;justify-content:center}
+  .nrow{display:flex;align-items:flex-start;gap:2px;padding:6px 4px 6px 12px;border-radius:14px;background:var(--bg);margin-bottom:8px}
+  .nbody{flex:1;min-width:0;padding-top:8px}
+  .ntext{white-space:pre-wrap;word-break:break-word;font-size:15px;line-height:1.4}
+  .nmeta{font-size:12px;color:var(--muted);margin-top:2px}
+  .nbtn{width:40px;height:44px;padding:0;border-radius:12px;background:none;color:var(--muted);display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+  .nbtn:hover{background:var(--panel);color:var(--ink)}
+  .nbtn svg{width:18px;height:18px;display:block}
+  .dnotes textarea{width:100%;min-height:64px;resize:vertical;border:1px solid var(--line);border-radius:12px;padding:10px 12px;font:inherit;font-size:16px;background:var(--panel);color:var(--ink);box-sizing:border-box}
+  .nedit{flex:1;min-width:0}
+  .nacts{display:flex;gap:8px;justify-content:flex-end;align-items:center;margin-top:8px}
+  .nadd{height:44px;padding:0 18px;border-radius:12px}
+  .nspacer{flex:1}
+  .nwho{margin:-4px 4px 10px;font-size:13px;font-weight:600;color:var(--muted);word-break:break-word}
+  .dnotes[hidden]{display:none}
+  .empnote{width:40px;height:44px;padding:0;margin-left:auto;flex:0 0 auto;border-radius:12px;background:none;color:var(--muted);display:flex;align-items:center;justify-content:center}
+  .empnote:hover{background:var(--accent-soft);color:var(--ink)}
+  .empnote svg{width:20px;height:20px;display:block}
+  .empnote.has{color:var(--accent)}
+  .emp.sel{box-shadow:inset 0 0 0 2px var(--accent)}
+  .nplus{width:44px;height:44px;padding:0;border-radius:14px;background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+  .nplus:hover{background:#2a2f3d}
+  .nplus svg{width:20px;height:20px;display:block;transition:transform .15s}
+  .nplus.open svg{transform:rotate(45deg)}
+  .ncomposer{margin:0 0 10px}
+  /* Власні діалог і сповіщення (системні confirm/alert у PWA та вбудованих вікнах можуть бути заблоковані) */
+  #dlg{display:none;position:fixed;inset:0;z-index:90;align-items:center;justify-content:center;padding:20px}
+  #dlg.open{display:flex}
+  .dscrim{position:absolute;inset:0;background:rgba(18,20,26,.45)}
+  .dbox{position:relative;width:min(360px,100%);background:var(--panel);border-radius:24px;padding:20px 20px 12px}
+  .dbox p{margin:0 0 12px;font-size:16px;font-weight:600;line-height:1.4}
+  .dacts{display:flex;justify-content:flex-end;gap:8px;align-items:center}
+  .dokbtn{height:44px;padding:0 18px;border-radius:12px;background:var(--warn);color:#fff;font-weight:700}
+  .dokbtn:hover{background:#a8381a}
+  #toast{position:fixed;left:50%;transform:translateX(-50%) translateY(12px);bottom:calc(max(16px,env(safe-area-inset-bottom,0px)) + 76px);
+    z-index:80;display:flex;align-items:center;gap:14px;max-width:min(420px,calc(100% - 32px));padding:6px 8px 6px 18px;border-radius:24px;
+    background:var(--ink);color:#fff;font-size:14px;font-weight:600;opacity:0;pointer-events:none;transition:opacity .15s,transform .15s}
+  #toast.show{opacity:1;pointer-events:auto;transform:translateX(-50%)}
+  #toast button{height:40px;padding:0 14px;border-radius:20px;background:none;color:#a9b1ff;font-size:14px;font-weight:800}
+  #toast button:hover{background:rgba(255,255,255,.1)}
 </style>
 </head>
 <body>
@@ -272,6 +359,7 @@
       <button type="button" id="colorModeBtn" class="toggle-btn"></button>
       <button type="button" id="manualBtn" class="toggle-btn">Завантажити файл вручну</button>
       <button type="button" id="manualOff" class="toggle-btn" style="display:none">Повернутися до даних із сервера</button>
+      <button type="button" id="rulesBtn" class="toggle-btn">Правила розпізнавання</button>
       <button type="button" id="clearBtn">Очистити збережені дані</button>
       <input type="file" id="manualFile" accept=".xlsx,.xlsm,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
     </div>
@@ -303,6 +391,7 @@
     <button type="button" class="backbtn" id="dayBack">← Назад</button>
     <h1 id="dayTitle"></h1>
     <p class="day-sub" id="daySub"></p>
+    <section class="dnotes" id="dayNotes" aria-label="Мої помітки"></section>
     <div class="dayctl">
       <div class="searchbox">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
@@ -322,6 +411,29 @@
     <p class="day-sub" id="newsStatus"></p>
     <h1 id="newsTitle">Новини</h1>
     <div id="newsList"></div>
+  </div>
+</div>
+
+<div id="dlg" aria-hidden="true">
+  <div class="dscrim" id="dlgScrim"></div>
+  <div class="dbox" role="alertdialog" aria-modal="true" aria-labelledby="dlgText">
+    <p id="dlgText"></p>
+    <div class="dacts"><button type="button" class="linkbtn" id="dlgCancel">Скасувати</button><button type="button" class="dokbtn" id="dlgOk">Так</button></div>
+  </div>
+</div>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<div id="rulesPage" aria-hidden="true">
+  <div class="wrap">
+    <button type="button" class="backbtn" id="rulesBack">← Назад</button>
+    <h1>Правила</h1>
+    <p class="day-sub">Слова, за якими програма розпізнає написи в комірках. Зміни діють одразу й зберігаються на цьому пристрої.</p>
+    <div id="rulesList"></div>
+    <div class="ractions">
+      <button type="button" id="ruleAdd" class="toggle-btn">+ Додати правило</button>
+      <button type="button" id="ruleExport" class="toggle-btn">Скопіювати JSON</button>
+      <button type="button" id="ruleReset" class="linkbtn">Скинути мої зміни</button>
+    </div>
   </div>
 </div>
 
@@ -394,76 +506,128 @@ function hasFuzzyWord(text, targetWord){
   }
   return false;
 }
-/* ---- Правила слів (файл rules.json) ----
-   Усі ключові слова живуть у rules.json поруч з index.html (редагується на GitHub):
-   trinity — «Триніті», care — «Care/кейр», vacation — «Відпустка», notShift — написи, що не є зміною.
-   Програма завантажує файл при кожному запуску, кешує його в localStorage для роботи без мережі,
-   а якщо файла немає (або в ньому немає якоїсь категорії) — бере вбудований список нижче.
-   Типи збігу: prefix — слово починається з…, exact — слово збігається, contains — текст комірки
-   без пробілів містить…, fuzzy — слово схоже з допуском на одруки (для слів від 6 літер). */
+/* ---- Правила розпізнавання (rules.json + «Мої правила») ----
+   Єдиний формат: список правил. Кожне правило має слова (match) та ефекти (effects):
+     countAsShift:false — комірка не рахується змінами;   group:{label,color} — окрема група й чип на сторінці дня;
+     cellColor:'#rrggbb' — колір комірки (у режимі «нормалізованих» кольорів);   vacation:true — відпустка (сірий колір).
+   Типи збігу слова: prefix — слово починається з…, exact — слово повністю, contains — текст без пробілів містить…,
+   fuzzy — схоже з допуском на одруки (для слів від 6 літер).
+   Джерела: rules.json поруч з index.html (кешується для роботи без мережі) → вбудований список, якщо файла немає;
+   зверху накладаються «Мої правила» з екрана «Правила» (зберігаються на цьому пристрої). */
 const LS_RULES = 'scheduleApp:rules';
-const RULE_CATEGORIES = ['trinity', 'care', 'vacation', 'notShift'];
-const DEFAULT_RULES = {version:2, categories:{
-  trinity:  {words:[{word:'триніті', match:'fuzzy'}, {word:'triniti', match:'fuzzy'}, {word:'trinity', match:'fuzzy'}]},
-  care:     {words:[{word:'care', match:'exact'}, {word:'кейр', match:'prefix'}]},
-  vacation: {words:[{word:'відпустка', match:'fuzzy'}]},
-  notShift: {words:[
-    {word:'конф', match:'prefix'}, {word:'коф', match:'prefix'}, {word:'ортонейро', match:'prefix'},
-    {word:'vetspace', match:'contains'}, {word:'ветспейс', match:'contains'},
-    {word:'vetseminar', match:'contains'}, {word:'ветсемінар', match:'contains'}, {word:'ветсемінра', match:'contains'}
-  ]}
-}};
+const LS_USERRULES = 'scheduleApp:userRules';
+const MATCH_TYPES = {prefix:'початок слова', exact:'слово повністю', contains:'міститься в тексті', fuzzy:'з допуском на одруки'};
+const DEFAULT_RULES = {version:3, rules:[
+  {id:'trinity', name:'Триніті', match:[{word:'триніті',type:'fuzzy'}, {word:'triniti',type:'fuzzy'}, {word:'trinity',type:'fuzzy'}],
+   effects:{group:{label:'Триніті', color:'#4c1925'}, cellColor:'#4c1925'}},
+  {id:'care', name:'Care / кейр', match:[{word:'care',type:'exact'}, {word:'кейр',type:'prefix'}],
+   effects:{group:{label:'Care', color:'#0f766e'}}},
+  {id:'vacation', name:'Відпустка', match:[{word:'відпустка',type:'fuzzy'}],
+   effects:{vacation:true, countAsShift:false, group:{label:'Відпустка', sectionTitle:'У відпустці', color:'#9aa1b5'}}},
+  {id:'conferences', name:'Конференції та семінари', match:[
+    {word:'конф',type:'prefix'}, {word:'коф',type:'prefix'}, {word:'ортонейро',type:'prefix'},
+    {word:'vetspace',type:'contains'}, {word:'ветспейс',type:'contains'}, {word:'vetseminar',type:'contains'},
+    {word:'ветсемінар',type:'contains'}, {word:'ветсемінра',type:'contains'}],
+   effects:{countAsShift:false}}
+]};
 const collapseText = t => (t || '').toLowerCase().replace(/[^a-zа-яіїєґ0-9]+/g, '');
-function compileRules(j){
-  // підтримуємо і новий формат (categories), і старий (лише notShift)
-  const cats = (j && j.categories) || (j && j.notShift ? {notShift: j.notShift} : {});
-  const out = {};
-  for(const k of RULE_CATEGORIES){
-    const list = cats[k] && Array.isArray(cats[k].words) ? cats[k].words : null;
-    out[k] = list
-      ? list.filter(r => r && typeof r.word === 'string' && r.word.trim())
-            .map(r => ({word: r.word.trim().toLowerCase(), match: ['prefix','exact','fuzzy','contains'].includes(r.match) ? r.match : 'prefix'}))
-      : null;                                  // категорії немає у файлі → візьмемо значення за замовчуванням
+const HEX6 = /^#[0-9a-f]{6}$/i;
+function normRule(r, builtin){
+  if(!r || typeof r !== 'object') return null;
+  const id = String(r.id || '').trim(); if(!id) return null;
+  const match = (Array.isArray(r.match) ? r.match : [])
+    .filter(m => m && typeof m.word === 'string' && m.word.trim())
+    .map(m => ({word: m.word.trim().toLowerCase(), type: MATCH_TYPES[m.type] ? m.type : 'prefix'}));
+  const e = (r.effects && typeof r.effects === 'object') ? r.effects : {};
+  const g = (e.group && typeof e.group === 'object' && e.group.label)
+    ? {label: String(e.group.label), sectionTitle: e.group.sectionTitle ? String(e.group.sectionTitle) : '', color: HEX6.test(e.group.color || '') ? e.group.color : '#6b7a74'} : null;
+  return {id, name: String(r.name || id), enabled: r.enabled !== false, builtin: !!builtin, match,
+    effects:{countAsShift: e.countAsShift !== false, vacation: !!e.vacation, group: g, cellColor: HEX6.test(e.cellColor || '') ? e.cellColor.toLowerCase() : ''}};
+}
+// старі формати rules.json (v1/v2 з categories) → список правил
+function legacyToRules(j){
+  const cats = j.categories || (j.notShift ? {notShift: j.notShift} : {});
+  const d = JSON.parse(JSON.stringify(DEFAULT_RULES.rules));
+  const map = {trinity:'trinity', care:'care', vacation:'vacation', notShift:'conferences'};
+  for(const k of Object.keys(map)){
+    if(cats[k] && Array.isArray(cats[k].words)) d.find(r => r.id === map[k]).match = cats[k].words.map(x => ({word:x.word, type:x.match}));
   }
-  return out;
+  return d;
 }
-function withDefaults(c){
-  const d = compileRules(DEFAULT_RULES);
-  for(const k of RULE_CATEGORIES) if(!c[k]) c[k] = d[k];
-  return c;
+function parseRulesFile(j){
+  if(!j || typeof j !== 'object') return null;
+  const list = Array.isArray(j.rules) ? j.rules : ((j.categories || j.notShift) ? legacyToRules(j) : null);
+  return list ? list.map(r => normRule(r, true)).filter(Boolean) : null;
 }
-let RULES = withDefaults(compileRules(DEFAULT_RULES));
-try{ const saved = JSON.parse(localStorage.getItem(LS_RULES) || 'null'); if(saved) RULES = withDefaults(compileRules(saved)); } catch(err){}
-function hasCategoryWord(cat, text){
-  if(!text) return false;
+let BASE_RULES = parseRulesFile(DEFAULT_RULES);
+let USER_RULES = {overrides:{}, custom:[]};
+let RULES = [];
+function saveUserRules(){ try{ localStorage.setItem(LS_USERRULES, JSON.stringify(USER_RULES)); } catch(err){} }
+function buildRules(){
+  const out = [];
+  for(const b of BASE_RULES){
+    const o = USER_RULES.overrides[b.id] || {};
+    const r = JSON.parse(JSON.stringify(b));
+    r.match = r.match.map(m => ({...m, src:'base'}));
+    const removed = new Set(o.remove || []);
+    r.match = r.match.filter(m => !removed.has(m.type + ':' + m.word));
+    for(const m of (o.add || [])) if(m && typeof m.word === 'string' && m.word.trim()) r.match.push({word:m.word.trim().toLowerCase(), type: MATCH_TYPES[m.type] ? m.type : 'prefix', src:'user'});
+    if(typeof o.enabled === 'boolean') r.enabled = o.enabled;
+    out.push(r);
+  }
+  for(const c of USER_RULES.custom){ const r = normRule(c, false); if(r){ r.match.forEach(m => m.src = 'user'); out.push(r); } }
+  RULES = out;
+}
+function loadRulesState(){
+  try{ const p = parseRulesFile(JSON.parse(localStorage.getItem(LS_RULES) || 'null')); if(p && p.length) BASE_RULES = p; } catch(err){}
+  try{
+    const u = JSON.parse(localStorage.getItem(LS_USERRULES) || 'null');
+    if(u && typeof u === 'object') USER_RULES = {overrides: (u.overrides && typeof u.overrides === 'object') ? u.overrides : {}, custom: Array.isArray(u.custom) ? u.custom : []};
+  } catch(err){}
+  buildRules();
+}
+loadRulesState();
+// правила, що збіглися з текстом комірки
+function hitRules(text){
+  if(!text) return [];
   const low = text.toLowerCase();
   const tokens = low.split(/[^a-zа-яіїєґ']+/i).filter(Boolean);
   const flat = collapseText(low);
-  return (RULES[cat] || []).some(r => {
-    if(r.match === 'exact') return tokens.includes(r.word);
-    if(r.match === 'fuzzy') return hasFuzzyWord(text, r.word);
-    if(r.match === 'contains') return flat.includes(collapseText(r.word));
-    return tokens.some(w => w.startsWith(r.word));                 // prefix
-  });
+  return RULES.filter(r => r.enabled && r.match.some(m => {
+    if(m.type === 'exact') return tokens.includes(m.word);
+    if(m.type === 'fuzzy') return hasFuzzyWord(text, m.word);
+    if(m.type === 'contains') return flat.includes(collapseText(m.word));
+    return tokens.some(w => w.startsWith(m.word));                 // prefix
+  }));
 }
-function hasTrinityWord(text){ return hasCategoryWord('trinity', text); }
-function hasCareWord(text){ return hasCategoryWord('care', text); }
-function hasVacationWord(text){ return hasCategoryWord('vacation', text); }
-function isNonShiftText(text){ return hasCategoryWord('notShift', text); }   // конференція, семінар…
+function textCellColor(text){ const r = hitRules(text).find(x => x.effects.cellColor); return r ? r.effects.cellColor : ''; }
+function textIsVacation(text){ return hitRules(text).some(r => r.effects.vacation); }
+function textNotShift(text){ return hitRules(text).some(r => !r.effects.countAsShift); }
+// правило-група комірки (крім відпустки): за текстом або за кольором комірки
+function cellGroupRule(c){
+  const hits = hitRules(c.text);
+  return RULES.find(r => r.enabled && r.effects.group && !r.effects.vacation && (hits.includes(r) || (r.effects.cellColor && c.color === r.effects.cellColor))) || null;
+}
+function applyRulesChanged(){
+  buildRules();
+  if(WORKBOOK){                                                    // колір і відпустка визначаються під час розбору — розбираємо заново
+    const fs = $('#fileStatus'), keepCls = fs.className, keepHtml = fs.innerHTML;
+    try{ pendingMonth = $('#month').value || pendingMonth; loadSheet($('#sheetSel').value); } catch(err){}
+    fs.className = keepCls; fs.innerHTML = keepHtml;
+  } else { try{ renderView(); } catch(err){} }
+  try{ refreshDayPage(); } catch(err){}
+}
 async function syncRules(){
   try{
     const res = await fetch('rules.json', {cache:'no-cache'});
     if(!res.ok) return;
     const j = await res.json();
-    const next = withDefaults(compileRules(j));
+    const p = parseRulesFile(j);
+    if(!p || !p.length) return;
     try{ localStorage.setItem(LS_RULES, JSON.stringify(j)); } catch(err){}
-    if(JSON.stringify(next) === JSON.stringify(RULES)) return;     // нічого не змінилося
-    RULES = next;
-    if(WORKBOOK){                                                  // колір «Триніті» та відпустка визначаються під час розбору — розбираємо заново
-      const fs = $('#fileStatus'), keepCls = fs.className, keepHtml = fs.innerHTML;
-      try{ pendingMonth = $('#month').value || pendingMonth; loadSheet($('#sheetSel').value); } catch(err){}
-      fs.className = keepCls; fs.innerHTML = keepHtml;
-    } else { try{ renderView(); } catch(err){} }
+    if(JSON.stringify(p) === JSON.stringify(BASE_RULES)) return;   // нічого не змінилося
+    BASE_RULES = p;
+    applyRulesChanged();
   } catch(err){}
 }
 
@@ -484,7 +648,7 @@ function normalizeColor(hex){
 // комірки. Це важливо, якщо слово написане не в першому дні блоку кольору.
 // Чорні комірки ніколи не займаються і завжди обривають діапазон.
 function applyVacationRanges(dayCells){
-  const labeled = dayCells.filter(c => !c.locked && hasVacationWord(c.text));
+  const labeled = dayCells.filter(c => !c.locked && textIsVacation(c.text));
   for(const start of labeled){
     const refColor = start.rawColor;
     const i = dayCells.indexOf(start);
@@ -670,7 +834,7 @@ function buildRecords(blocks, sheetName){
         const mark = r.marks.get(col.day) || {text:'', bg:null, themeApprox:false};
         const rawColor = mark.bg || null;
         const isBlack = rawColor && rawColor.toUpperCase() === '#000000';
-        const color = isBlack ? rawColor : (hasTrinityWord(mark.text) ? TRINITY_PURPLE : (normalizeColor(rawColor) || ''));
+        const color = isBlack ? rawColor : (textCellColor(mark.text) || normalizeColor(rawColor) || '');
         return {day: col.day, weekday: col.weekday, text: mark.text || '', rawColor, color, locked: !!isBlack, themeApprox: !!mark.themeApprox};
       });
       dayCells.sort((a,c) => a.day - c.day);
@@ -937,6 +1101,31 @@ function readableOn(hex){
 }
 
 // Малює один календар з групи RECORDS (group.cells: day -> {weekday,color,text}).
+/* ---- Помітки до днів ----
+   Зберігаються лише на цьому пристрої (localStorage). Ключ: аркуш | місяць | день. */
+const LS_NOTES = 'scheduleApp:notes';
+let NOTES = {};
+try{ const n = JSON.parse(localStorage.getItem(LS_NOTES) || '{}'); if(n && typeof n === 'object' && !Array.isArray(n)) NOTES = n; } catch(err){}
+function curSheetName(){ const sel = $('#sheetSel'); return (sel && sel.value) || (WORKBOOK && WORKBOOK.SheetNames[0]) || ''; }
+const empName = d => (d || '').trim().toLowerCase();
+function noteKey(doctor, month, day){ return curSheetName() + '|' + (month || '') + '|' + day + '|' + empName(doctor); }
+function notesFor(doctor, month, day){ const l = NOTES[noteKey(doctor, month, day)]; return Array.isArray(l) ? l : []; }
+// помітки зі старого формату (без працівника) переходять до першого працівника, чий день відкрили
+function adoptLegacyNotes(doctor, month, day){
+  const lk = curSheetName() + '|' + (month || '') + '|' + day;
+  const old = NOTES[lk];
+  if(!Array.isArray(old) || !old.length) return false;
+  const k = noteKey(doctor, month, day);
+  NOTES[k] = (Array.isArray(NOTES[k]) ? NOTES[k] : []).concat(old);
+  delete NOTES[lk];
+  saveNotes();
+  return true;
+}
+function saveNotes(){
+  try{ localStorage.setItem(LS_NOTES, JSON.stringify(NOTES)); }
+  catch(err){ try{ showToast('Не вдалося зберегти: пам\'ять браузера недоступна або переповнена'); } catch(e2){} }
+}
+
 function renderCalendar(group){
   const wrap = document.createElement('div');
   wrap.className = 'cal';
@@ -966,7 +1155,7 @@ function renderCalendar(group){
   // тому в лічильник не входить. Рахуємо за нормалізованим color, а не rawColor,
   // щоб результат не залежав від режиму показу кольорів.
   const shiftCount = [...group.cells.values()]
-    .filter(c => (c.text || c.color) && c.color !== VACATION_GRAY && !hasVacationWord(c.text) && !isNonShiftText(c.text)).length;
+    .filter(c => (c.text || c.color) && c.color !== VACATION_GRAY && !textNotShift(c.text)).length;
   const who = document.createElement('p'); who.className = 'who';
   who.textContent = (group.month ? group.month + ' · ' : '') + (group.section || 'Графік') + ' · змін: ' + shiftCount;
   wrap.appendChild(who);
@@ -1007,8 +1196,9 @@ function renderCalendar(group){
       cell.style.borderColor = 'var(--accent)';
     }
     cell.classList.add('clickable');
+    { const nn = notesFor(group.doctor, group.month, day).length; if(nn){ cell.classList.add('hasnote'); cell.title += ' · поміток: ' + nn; } }
     { const now = new Date(); if(monthSortIndex(group.month) === now.getMonth() && day === now.getDate()) cell.classList.add('today'); }
-    cell.addEventListener('click', () => openDayPage(group.month, day));
+    cell.addEventListener('click', () => openDayPage(group.month, day, group.doctor));
     const dEl = document.createElement('div'); dEl.className = 'd'; dEl.textContent = day;
     cell.appendChild(dEl);
     if(cellData.text){
@@ -1070,10 +1260,8 @@ function renderView(){
 
 // ---------- Сторінка дня: хто працює у вибраний день ----------
 // «Триніті» визначаємо за текстом (з допуском на одруки) — це працює в обох режимах кольору.
-function isTrinityCell(c){ return c.color === TRINITY_PURPLE || hasTrinityWord(c.text); }
 function isBlackCell(c){ return !!c.rawColor && c.rawColor.toUpperCase() === '#000000'; }
-function isCareCell(c){ return hasCareWord(c.text); }
-function isVacationCell(c){ return c.color === VACATION_GRAY || hasVacationWord(c.text); }
+function isVacationCell(c){ return c.color === VACATION_GRAY || textIsVacation(c.text); }
 
 function renderDayPage(){
   if(!dayCtx) return;
@@ -1086,25 +1274,29 @@ function renderDayPage(){
   $('#daySub').textContent = weekday ? weekday.charAt(0).toUpperCase() + weekday.slice(1) : '';
 
   // Групи: нічна (чорні) — окремо; «триніті» — окремо; решта — окремо; відпустка — окремо.
-  const favs = [], others = [], blacks = [], trinity = [], care = [], onVacation = [];
+  const favs = [], others = [], blacks = [], onVacation = [];
+  const groupRules = RULES.filter(r => r.enabled && r.effects.group && !r.effects.vacation);
+  const byGroup = {}; for(const r of groupRules) byGroup[r.id] = [];
   const favList = getFavs();
-  const counts = {day:0, night:0, trinity:0, care:0, vacation:0, fav:0};
+  const counts = {day:0, night:0, vacation:0, fav:0}; for(const r of groupRules) counts[r.id] = 0;
+  const defsNow = filterDefs();
+  for(const k of [...dayFilter.sel]) if(!defsNow.some(d => d[0] === k)) dayFilter.sel.delete(k);   // правило могли вимкнути чи видалити
   const q = dayFilter.q.trim().toLowerCase();
   const sel = dayFilter.sel;
   for(const g of groups){
     const c = g.cells.get(day);
     if(!(c.text || c.color)) continue;
     const isFavG = favList.includes(g.doctor.trim().toLowerCase());
-    const cat = isVacationCell(c) ? 'vacation' : isCareCell(c) ? 'care' : isBlackCell(c) ? 'night' : isTrinityCell(c) ? 'trinity' : 'day';
+    const vac = isVacationCell(c), gr = vac ? null : cellGroupRule(c);
+    const cat = vac ? 'vacation' : gr ? gr.id : isBlackCell(c) ? 'night' : 'day';
     counts[cat]++; if(isFavG) counts.fav++;                     // лічильники — до фільтрів
     if(q && !g.doctor.toLowerCase().includes(q)) continue;      // пошук за прізвищем
     if(sel.size && !sel.has(cat)) continue;                     // зміна / група (збіг з будь-якою вибраною)
     if(dayFilter.favOnly && !isFavG) continue;                  // тільки улюблені
-    if(isFavG && !isVacationCell(c)) favs.push({g, c});
-    else if(isVacationCell(c)) onVacation.push({g, c});
-    else if(isCareCell(c)) care.push({g, c});
+    if(isFavG && !vac) favs.push({g, c});
+    else if(vac) onVacation.push({g, c});
+    else if(gr) byGroup[gr.id].push({g, c});
     else if(isBlackCell(c)) blacks.push({g, c});
-    else if(isTrinityCell(c)) trinity.push({g, c});
     else others.push({g, c});
   }
   // Усередині групи: однакові кольори йдуть поруч (комірки без кольору — в кінці),
@@ -1114,10 +1306,10 @@ function renderDayPage(){
     colorKey(a).localeCompare(colorKey(b)) ||
     (a.g.section || '').localeCompare(b.g.section || '') ||
     a.g.doctor.localeCompare(b.g.doctor, 'uk');
-  favs.sort(byColorName); others.sort(byColorName); blacks.sort(byColorName); trinity.sort(byColorName); care.sort(byColorName); onVacation.sort(byColorName);
+  favs.sort(byColorName); others.sort(byColorName); blacks.sort(byColorName); onVacation.sort(byColorName); for(const k in byGroup) byGroup[k].sort(byColorName);
 
   dayCounts = counts;
-  dayShown = favs.length + others.length + blacks.length + trinity.length + care.length + onVacation.length;
+  dayShown = favs.length + others.length + blacks.length + onVacation.length + groupRules.reduce((a, r) => a + byGroup[r.id].length, 0);
   updateFilterUI();
 
   const list = $('#dayList');
@@ -1141,6 +1333,20 @@ function renderDayPage(){
       const nm = document.createElement('div'); nm.className = 'nm';
       nm.textContent = g.doctor + (g.section ? ' · ' + g.section : '');
       row.appendChild(sw); row.appendChild(nm);
+      const nCnt = notesFor(g.doctor, month, day).length;
+      const isSel = empName(g.doctor) === empName(dayCtx.doctor);
+      if(isSel) row.classList.add('sel');
+      const nb = document.createElement('button'); nb.type = 'button';
+      nb.className = 'empnote' + (nCnt ? ' has' : '');
+      nb.setAttribute('aria-label', 'Помітки: ' + g.doctor + (nCnt ? ' (' + nCnt + ')' : ''));
+      nb.title = nCnt ? 'Поміток: ' + nCnt : 'Додати помітку';
+      nb.innerHTML = ICON_NOTE;
+      nb.addEventListener('click', () => {                       // помітки цього працівника
+        dayCtx.doctor = g.doctor; noteComposerOpen = false;
+        renderDayNotes(); renderDayPage();
+        $('#dayNotes').scrollIntoView({block: 'start', behavior: 'smooth'});
+      });
+      row.appendChild(nb);
       if(c.text){
         const tx = document.createElement('div'); tx.className = 'tx'; tx.textContent = c.text;
         row.appendChild(tx);
@@ -1151,11 +1357,11 @@ function renderDayPage(){
   addSection('♥ Обрані', favs, true);
   addSection('Інші', others);
   addSection('Нічна', blacks);
-  addSection('Триніті', trinity);
-  addSection('Care', care);
-  addSection('У відпустці', onVacation);
+  for(const r of groupRules) addSection(r.effects.group.label, byGroup[r.id]);
+  const vr = RULES.find(r => r.enabled && r.effects.vacation && r.effects.group);
+  addSection(vr ? (vr.effects.group.sectionTitle || vr.effects.group.label) : 'У відпустці', onVacation);
 
-  if(!favs.length && !others.length && !blacks.length && !trinity.length && !care.length && !onVacation.length){
+  if(!dayShown){
     const note = document.createElement('p'); note.className = 'empty-note';
     note.textContent = (q || sel.size || dayFilter.favOnly) ? 'За цими умовами нікого не знайдено.' : 'На цей день у графіку нікого немає.';
     list.appendChild(note);
@@ -1164,9 +1370,12 @@ function renderDayPage(){
 
 function refreshDayPage(){ if(dayCtx) renderDayPage(); }
 
-function openDayPage(month, day){
-  dayCtx = {month, day};
+function openDayPage(month, day, doctor){
+  dayCtx = {month, day, doctor: doctor || ''};
+  if(doctor && adoptLegacyNotes(doctor, month, day)){ try{ renderView(); } catch(err){} }
   renderDayPage();
+  noteComposerOpen = false;
+  renderDayNotes();
   const page = $('#dayPage');
   page.scrollTop = 0;
   page.classList.add('open');
@@ -1203,13 +1412,19 @@ window.addEventListener('popstate', () => {
 $('#dayBack').addEventListener('click', closeDayPage);
 
 /* ---- Пошук і фільтри сторінки дня (чипи) ---- */
-const FILTER_DEFS = [['day','День','#d98a00'], ['night','Ніч','#4f5bd5'], ['trinity','Триніті','#4c1925'], ['care','Care','#0f766e'], ['vacation','Відпустка','#9aa1b5']];
+function filterDefs(){                                             // чипи будуються з правил: День, Ніч, групи, Відпустка
+  const defs = [['day','День','#d98a00'], ['night','Ніч','#4f5bd5']];
+  for(const r of RULES) if(r.enabled && r.effects.group && !r.effects.vacation) defs.push([r.id, r.effects.group.label, r.effects.group.color]);
+  const v = RULES.find(r => r.enabled && r.effects.vacation && r.effects.group);
+  if(v) defs.push(['vacation', v.effects.group.label, v.effects.group.color]);
+  return defs;
+}
 const LS_DAYFILTER = 'scheduleApp:dayFilter';
 function saveDayFilter(){ try{ localStorage.setItem(LS_DAYFILTER, JSON.stringify({sel:[...dayFilter.sel], favOnly:dayFilter.favOnly})); } catch(err){} }
 function loadDayFilter(){
   try{
     const o = JSON.parse(localStorage.getItem(LS_DAYFILTER) || 'null');
-    if(o){ dayFilter.sel = new Set((o.sel || []).filter(k => FILTER_DEFS.some(d => d[0] === k))); dayFilter.favOnly = !!o.favOnly; }
+    if(o){ dayFilter.sel = new Set((o.sel || []).filter(k => typeof k === 'string')); dayFilter.favOnly = !!o.favOnly; }
   } catch(err){}
 }
 function resetDaySearch(){ dayFilter.q = ''; $('#dayQ').value = ''; $('#dayQClear').hidden = true; }
@@ -1225,6 +1440,7 @@ function updateFilterUI(){
     b.addEventListener('click', onClick);
     box.appendChild(b);
   };
+  const FILTER_DEFS = filterDefs();
   const total = FILTER_DEFS.reduce((a, d) => a + (dayCounts[d[0]] || 0), 0);
   const none = !dayFilter.sel.size && !dayFilter.favOnly;
   mk('Усі', total, none, null, () => { dayFilter.sel.clear(); dayFilter.favOnly = false; saveDayFilter(); renderDayPage(); });
@@ -1449,6 +1665,259 @@ $('#manualOff').addEventListener('click', () => {
   location.reload();
 });
 showManualStatus();
+/* ---- Екран «Правила» (редактор) ---- */
+function mkEl(tag, props, ...kids){
+  const e = document.createElement(tag);
+  for(const [k, v] of Object.entries(props || {})){
+    if(k === 'class') e.className = v;
+    else if(k === 'text') e.textContent = v;
+    else if(k.startsWith('on')) e.addEventListener(k.slice(2), v);
+    else if(v !== false && v != null) e.setAttribute(k, v === true ? '' : v);
+  }
+  for(const kid of kids.flat()) if(kid) e.appendChild(typeof kid === 'string' ? document.createTextNode(kid) : kid);
+  return e;
+}
+const customOf = id => USER_RULES.custom.find(c => c.id === id);
+const ovr = id => USER_RULES.overrides[id] || (USER_RULES.overrides[id] = {});
+function commitRules(){ saveUserRules(); applyRulesChanged(); renderRulesPage(); }
+function ruleSummary(r){
+  const p = [r.effects.countAsShift ? 'Рахується змінами' : 'Не рахується змінами'];
+  if(r.effects.vacation) p.push('відпустка (сірий колір)');
+  if(r.effects.group) p.push('окрема група «' + r.effects.group.label + '»');
+  if(r.effects.cellColor) p.push('колір комірки ' + r.effects.cellColor);
+  return p.join(' · ') + (r.builtin ? ' · вбудоване' : '');
+}
+function addWordTo(r, word, type){
+  word = (word || '').trim().toLowerCase();
+  if(!word) return;
+  if(r.builtin){
+    const o = ovr(r.id);
+    o.remove = (o.remove || []).filter(k => k !== type + ':' + word);   // якщо слово раніше видаляли — просто повертаємо
+    if(!r.match.some(m => m.word === word && m.type === type)){ o.add = o.add || []; o.add.push({word, type}); }
+  } else {
+    const c = customOf(r.id);
+    if(c){ c.match = c.match || []; if(!c.match.some(m => m.word === word && m.type === type)) c.match.push({word, type}); }
+  }
+  commitRules();
+}
+function removeWordFrom(r, m){
+  if(r.builtin){
+    const o = ovr(r.id);
+    if(m.src === 'base'){ o.remove = o.remove || []; o.remove.push(m.type + ':' + m.word); }
+    else o.add = (o.add || []).filter(x => !(x.word === m.word && x.type === m.type));
+  } else {
+    const c = customOf(r.id);
+    if(c) c.match = (c.match || []).filter(x => !(x.word === m.word && x.type === m.type));
+  }
+  commitRules();
+}
+function ruleCard(r){
+  const card = mkEl('section', {class: 'rcard' + (r.enabled ? '' : ' off')});
+  const c = r.builtin ? null : customOf(r.id);
+  const title = r.builtin
+    ? mkEl('b', {class: 'rname', text: r.name})
+    : mkEl('input', {class: 'rname-input', type: 'text', value: r.name, 'aria-label': 'Назва правила',
+        onchange: e => { if(c){ c.name = e.target.value.trim() || 'Без назви'; saveUserRules(); renderRulesPage(); } }});
+  const sw = mkEl('label', {class: 'rsw'},
+    mkEl('input', {type: 'checkbox', checked: r.enabled, 'aria-label': 'Правило увімкнено: ' + r.name,
+      onchange: e => { if(r.builtin) ovr(r.id).enabled = e.target.checked; else if(c) c.enabled = e.target.checked; commitRules(); }}),
+    mkEl('span'));
+  card.appendChild(mkEl('div', {class: 'rhead'}, title, sw));
+  card.appendChild(mkEl('div', {class: 'rsum', text: ruleSummary(r)}));
+
+  const words = mkEl('div', {class: 'rwords'});
+  if(!r.match.length) words.appendChild(mkEl('span', {class: 'rempty', text: 'Слів ще немає — додайте нижче'}));
+  for(const m of r.match){
+    words.appendChild(mkEl('span', {class: 'wchip'}, mkEl('b', {text: m.word}), mkEl('i', {text: MATCH_TYPES[m.type]}),
+      mkEl('button', {type: 'button', class: 'wdel', 'aria-label': 'Видалити слово ' + m.word, text: '×', onclick: () => removeWordFrom(r, m)})));
+  }
+  card.appendChild(words);
+
+  const inp = mkEl('input', {type: 'text', class: 'wnew', placeholder: 'Нове слово', autocomplete: 'off', 'aria-label': 'Нове слово'});
+  const sel = mkEl('select', {class: 'wtype', 'aria-label': 'Тип збігу'}, Object.entries(MATCH_TYPES).map(([k, v]) => mkEl('option', {value: k, text: v})));
+  inp.addEventListener('keydown', e => { if(e.key === 'Enter'){ e.preventDefault(); addWordTo(r, inp.value, sel.value); } });
+  card.appendChild(mkEl('div', {class: 'radd'}, inp, sel, mkEl('button', {type: 'button', class: 'wadd', text: 'Додати', onclick: () => addWordTo(r, inp.value, sel.value)})));
+
+  if(c){                                                           // свої правила: ефекти редагуються
+    c.effects = c.effects || {};
+    card.appendChild(mkEl('label', {class: 'rchk'},
+      mkEl('input', {type: 'checkbox', checked: c.effects.countAsShift !== false,
+        onchange: e => { c.effects.countAsShift = e.target.checked; commitRules(); }}), 'Рахувати як зміну'));
+    card.appendChild(mkEl('label', {class: 'rchk'},
+      mkEl('input', {type: 'checkbox', checked: !!c.effects.group,
+        onchange: e => { c.effects.group = e.target.checked ? {label: c.name, color: '#6b7a74'} : null; commitRules(); }}), 'Окрема група й фільтр на сторінці дня'));
+    if(c.effects.group){
+      card.appendChild(mkEl('div', {class: 'rgrp'},
+        mkEl('input', {type: 'text', value: c.effects.group.label, 'aria-label': 'Назва групи',
+          onchange: e => { c.effects.group.label = e.target.value.trim() || c.name; commitRules(); }}),
+        mkEl('input', {type: 'color', value: HEX6.test(c.effects.group.color || '') ? c.effects.group.color : '#6b7a74', 'aria-label': 'Колір групи',
+          onchange: e => { c.effects.group.color = e.target.value; commitRules(); }})));
+    }
+  }
+  const links = mkEl('div', {class: 'rlinks'});
+  const nRemoved = r.builtin ? ((USER_RULES.overrides[r.id] || {}).remove || []).length : 0;
+  if(nRemoved) links.appendChild(mkEl('button', {type: 'button', class: 'rrest', text: 'Повернути видалені (' + nRemoved + ')',
+    onclick: () => { ovr(r.id).remove = []; commitRules(); }}));
+  if(c) links.appendChild(mkEl('button', {type: 'button', class: 'rdel', text: 'Видалити правило',
+    onclick: async () => { if(await appConfirm('Видалити правило «' + r.name + '»?', 'Видалити')){ USER_RULES.custom = USER_RULES.custom.filter(x => x.id !== r.id); commitRules(); } }}));
+  if(links.children.length) card.appendChild(links);
+  return card;
+}
+function renderRulesPage(){
+  const box = $('#rulesList'), keep = $('#rulesPage').scrollTop;
+  box.innerHTML = '';
+  for(const r of RULES) box.appendChild(ruleCard(r));
+  $('#rulesPage').scrollTop = keep;
+}
+function openRulesPage(){
+  renderRulesPage();
+  const p = $('#rulesPage'); p.classList.add('open'); p.setAttribute('aria-hidden', 'false');
+  document.body.style.overflow = 'hidden'; p.scrollTop = 0;
+}
+function closeRulesPage(){
+  const p = $('#rulesPage');
+  if(!p.classList.contains('open')) return;
+  p.classList.remove('open'); p.setAttribute('aria-hidden', 'true');
+  if(!dayCtx && !newsOpen) document.body.style.overflow = '';
+}
+function exportRulesJson(){
+  return JSON.stringify({version: 3, rules: RULES.map(r => ({
+    id: r.id, name: r.name, enabled: r.enabled,
+    match: r.match.map(m => ({word: m.word, type: m.type})),
+    effects: Object.assign({countAsShift: r.effects.countAsShift},
+      r.effects.vacation ? {vacation: true} : {}, r.effects.group ? {group: r.effects.group} : {}, r.effects.cellColor ? {cellColor: r.effects.cellColor} : {})
+  }))}, null, 2);
+}
+$('#rulesBtn').addEventListener('click', () => { closeSettings(); openRulesPage(); });
+$('#rulesBack').addEventListener('click', closeRulesPage);
+for(const id of ['#navHome', '#navNews', '#navSettings']) $(id).addEventListener('click', closeRulesPage);
+$('#ruleAdd').addEventListener('click', () => {
+  USER_RULES.custom.push({id: 'my_' + Date.now().toString(36), name: 'Нове правило', enabled: true, match: [], effects: {countAsShift: true, group: null}});
+  commitRules();
+  const last = $('#rulesList').lastElementChild;
+  if(last){ last.scrollIntoView({block: 'center'}); const n = last.querySelector('.rname-input'); if(n){ n.focus(); n.select(); } }
+});
+$('#ruleExport').addEventListener('click', async e => {
+  const btn = e.currentTarget, txt = exportRulesJson();
+  try{ await navigator.clipboard.writeText(txt); }
+  catch(err){ const ta = document.createElement('textarea'); ta.value = txt; document.body.appendChild(ta); ta.select(); try{ document.execCommand('copy'); } catch(e2){} ta.remove(); }
+  const old = btn.textContent; btn.textContent = 'Скопійовано ✓'; setTimeout(() => { btn.textContent = old; }, 1800);
+});
+$('#ruleReset').addEventListener('click', async () => {
+  if(await appConfirm('Скинути всі ваші зміни правил? Правила з файлу rules.json залишаться.', 'Скинути')){ USER_RULES = {overrides: {}, custom: []}; commitRules(); }
+});
+/* ---- Помітки: екран дня ---- */
+const ICON_NOTE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h14a1 1 0 0 1 1 1v10l-5 5H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z"/><path d="M15 20v-4a1 1 0 0 1 1-1h4"/></svg>';
+const ICON_EDIT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg>';
+const ICON_TRASH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg>';
+function noteTime(ts){ try{ return new Date(ts).toLocaleString('uk-UA', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'}); } catch(err){ return ''; } }
+function notesChanged(){ saveNotes(); renderDayNotes(); try{ renderDayPage(); renderView(); } catch(err){} }   // перемальовуємо календарі, щоб оновити позначки
+function addNote(text){
+  if(!dayCtx) return;
+  text = (text || '').trim().slice(0, 500);
+  if(!text) return;
+  const k = noteKey(dayCtx.doctor, dayCtx.month, dayCtx.day);
+  if(!Array.isArray(NOTES[k])) NOTES[k] = [];
+  NOTES[k].push({id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), text, ts: Date.now()});
+  noteComposerOpen = false;
+  notesChanged();
+}
+function updateNote(id, text){
+  if(!dayCtx) return;
+  text = (text || '').trim().slice(0, 500);
+  const n = notesFor(dayCtx.doctor, dayCtx.month, dayCtx.day).find(x => x.id === id);
+  if(!n) return;
+  if(!text){ deleteNote(id); return; }
+  n.text = text; n.edited = Date.now();
+  notesChanged();
+}
+function deleteNote(id){
+  if(!dayCtx) return;
+  const k = noteKey(dayCtx.doctor, dayCtx.month, dayCtx.day);
+  const list = notesFor(dayCtx.doctor, dayCtx.month, dayCtx.day);
+  const idx = list.findIndex(x => x.id === id);
+  if(idx < 0) return;
+  const removed = list[idx];
+  NOTES[k] = list.filter(x => x.id !== id);
+  if(!NOTES[k].length) delete NOTES[k];
+  notesChanged();
+  showToast('Помітку видалено', 'Скасувати', () => {          // повертаємо на те саме місце
+    if(!Array.isArray(NOTES[k])) NOTES[k] = [];
+    NOTES[k].splice(Math.min(idx, NOTES[k].length), 0, removed);
+    saveNotes(); renderDayNotes(); try{ renderDayPage(); renderView(); } catch(err){}
+  });
+}
+function icoBtn(label, svg, onclick){
+  const b = mkEl('button', {type: 'button', class: 'nbtn', 'aria-label': label, title: label, onclick});
+  b.innerHTML = svg; return b;
+}
+function noteRow(n){
+  const row = mkEl('div', {class: 'nrow'});
+  const body = mkEl('div', {class: 'nbody'},
+    mkEl('div', {class: 'ntext', text: n.text}),
+    mkEl('div', {class: 'nmeta', text: noteTime(n.ts) + (n.edited ? ' · змінено' : '')}));
+  const startEdit = () => {
+    row.innerHTML = '';
+    const ta = mkEl('textarea', {class: 'nedit', maxlength: '500', 'aria-label': 'Текст помітки'}); ta.value = n.text;
+    row.appendChild(mkEl('div', {class: 'nedit'}, ta, mkEl('div', {class: 'nacts'},
+      mkEl('button', {type: 'button', class: 'linkbtn', text: 'Скасувати', onclick: () => renderDayNotes()}),
+      mkEl('button', {type: 'button', class: 'nadd', text: 'Зберегти', onclick: () => updateNote(n.id, ta.value)}))));
+    ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length);
+  };
+  row.appendChild(body);
+  row.appendChild(icoBtn('Редагувати помітку', ICON_EDIT, startEdit));
+  row.appendChild(icoBtn('Видалити помітку', ICON_TRASH, () => deleteNote(n.id)));
+  return row;
+}
+let noteComposerOpen = false;                                      // поле нової помітки показується лише після натискання «+»
+const ICON_PLUS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>';
+function renderDayNotes(){
+  if(!dayCtx) return;
+  const box = $('#dayNotes');
+  box.hidden = !dayCtx.doctor;                                   // без працівника помітки не прив'язати
+  if(!dayCtx.doctor) return;
+  const list = notesFor(dayCtx.doctor, dayCtx.month, dayCtx.day);
+  box.innerHTML = '';
+  const plus = mkEl('button', {type: 'button', class: 'nplus' + (noteComposerOpen ? ' open' : ''),
+    'aria-label': noteComposerOpen ? 'Закрити поле помітки' : 'Додати помітку', 'aria-expanded': String(noteComposerOpen),
+    onclick: () => { noteComposerOpen = !noteComposerOpen; renderDayNotes(); }});
+  plus.innerHTML = ICON_PLUS;
+  box.appendChild(mkEl('div', {class: 'nhead'}, mkEl('b', {text: 'Мої помітки'}),
+    list.length ? mkEl('span', {class: 'ncount', text: String(list.length)}) : null, mkEl('span', {class: 'nspacer'}), plus));
+  box.appendChild(mkEl('div', {class: 'nwho', text: dayCtx.doctor}));
+  let ta = null;
+  if(noteComposerOpen){
+    ta = mkEl('textarea', {class: 'nnew', maxlength: '500', placeholder: 'Текст помітки…', 'aria-label': 'Нова помітка'});
+    const send = () => addNote(ta.value);
+    ta.addEventListener('keydown', e => { if(e.key === 'Enter' && (e.ctrlKey || e.metaKey)){ e.preventDefault(); send(); } });
+    box.appendChild(mkEl('div', {class: 'ncomposer'}, ta, mkEl('div', {class: 'nacts'},
+      mkEl('button', {type: 'button', class: 'linkbtn', text: 'Скасувати', onclick: () => { noteComposerOpen = false; renderDayNotes(); }}),
+      mkEl('button', {type: 'button', class: 'nadd', text: 'Додати', onclick: send}))));
+  }
+  for(const n of list) box.appendChild(noteRow(n));
+  if(ta) ta.focus();
+}
+/* ---- Власні діалог і сповіщення ---- */
+function appConfirm(text, okLabel){
+  return new Promise(resolve => {
+    const d = $('#dlg'), ok = $('#dlgOk'), cancel = $('#dlgCancel'), scrim = $('#dlgScrim');
+    $('#dlgText').textContent = text; ok.textContent = okLabel || 'Так';
+    d.classList.add('open'); d.setAttribute('aria-hidden', 'false');
+    const done = v => { d.classList.remove('open'); d.setAttribute('aria-hidden', 'true'); ok.onclick = cancel.onclick = scrim.onclick = null; resolve(v); };
+    ok.onclick = () => done(true); cancel.onclick = () => done(false); scrim.onclick = () => done(false);
+    cancel.focus();
+  });
+}
+let toastTimer = null;
+function hideToast(){ $('#toast').classList.remove('show'); }
+function showToast(msg, actionLabel, onAction){
+  const t = $('#toast');
+  t.innerHTML = '';
+  t.appendChild(mkEl('span', {text: msg}));
+  if(actionLabel) t.appendChild(mkEl('button', {type: 'button', text: actionLabel, onclick: () => { hideToast(); if(onAction) onAction(); }}));
+  t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(hideToast, 6000);
+}
 syncRules();
 </script>
 </body>
