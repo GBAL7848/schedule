@@ -317,11 +317,6 @@
   .nspacer{flex:1}
   .nwho{margin:-4px 4px 10px;font-size:13px;font-weight:600;color:var(--muted);word-break:break-word}
   .dnotes[hidden]{display:none}
-  .empnote{width:40px;height:44px;padding:0;margin-left:auto;flex:0 0 auto;border-radius:12px;background:none;color:var(--muted);display:flex;align-items:center;justify-content:center}
-  .empnote:hover{background:var(--accent-soft);color:var(--ink)}
-  .empnote svg{width:20px;height:20px;display:block}
-  .empnote.has{color:var(--accent)}
-  .emp.sel{box-shadow:inset 0 0 0 2px var(--accent)}
   .nplus{width:44px;height:44px;padding:0;border-radius:14px;background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
   .nplus:hover{background:#2a2f3d}
   .nplus svg{width:20px;height:20px;display:block;transition:transform .15s}
@@ -517,13 +512,15 @@ function hasFuzzyWord(text, targetWord){
 const LS_RULES = 'scheduleApp:rules';
 const LS_USERRULES = 'scheduleApp:userRules';
 const MATCH_TYPES = {prefix:'початок слова', exact:'слово повністю', contains:'міститься в тексті', fuzzy:'з допуском на одруки'};
-const DEFAULT_RULES = {version:3, rules:[
+const DEFAULT_RULES = {version:4, rules:[
   {id:'trinity', name:'Триніті', match:[{word:'триніті',type:'fuzzy'}, {word:'triniti',type:'fuzzy'}, {word:'trinity',type:'fuzzy'}],
    effects:{group:{label:'Триніті', color:'#4c1925'}, cellColor:'#4c1925'}},
   {id:'care', name:'Care / кейр', match:[{word:'care',type:'exact'}, {word:'кейр',type:'prefix'}],
    effects:{group:{label:'Care', color:'#0f766e'}}},
   {id:'vacation', name:'Відпустка', match:[{word:'відпустка',type:'fuzzy'}],
    effects:{vacation:true, countAsShift:false, group:{label:'Відпустка', sectionTitle:'У відпустці', color:'#9aa1b5'}}},
+  {id:'night', name:'Нічне чергування', match:[{word:'ніч',type:'prefix'}, {word:'черг',type:'prefix'}],
+   effects:{night:true}},
   {id:'conferences', name:'Конференції та семінари', match:[
     {word:'конф',type:'prefix'}, {word:'коф',type:'prefix'}, {word:'ортонейро',type:'prefix'},
     {word:'vetspace',type:'contains'}, {word:'ветспейс',type:'contains'}, {word:'vetseminar',type:'contains'},
@@ -542,7 +539,7 @@ function normRule(r, builtin){
   const g = (e.group && typeof e.group === 'object' && e.group.label)
     ? {label: String(e.group.label), sectionTitle: e.group.sectionTitle ? String(e.group.sectionTitle) : '', color: HEX6.test(e.group.color || '') ? e.group.color : '#6b7a74'} : null;
   return {id, name: String(r.name || id), enabled: r.enabled !== false, builtin: !!builtin, match,
-    effects:{countAsShift: e.countAsShift !== false, vacation: !!e.vacation, group: g, cellColor: HEX6.test(e.cellColor || '') ? e.cellColor.toLowerCase() : ''}};
+    effects:{countAsShift: e.countAsShift !== false, vacation: !!e.vacation, night: !!e.night, group: g, cellColor: HEX6.test(e.cellColor || '') ? e.cellColor.toLowerCase() : ''}};
 }
 // старі формати rules.json (v1/v2 з categories) → список правил
 function legacyToRules(j){
@@ -557,7 +554,11 @@ function legacyToRules(j){
 function parseRulesFile(j){
   if(!j || typeof j !== 'object') return null;
   const list = Array.isArray(j.rules) ? j.rules : ((j.categories || j.notShift) ? legacyToRules(j) : null);
-  return list ? list.map(r => normRule(r, true)).filter(Boolean) : null;
+  if(!list) return null;
+  const out = list.map(r => normRule(r, true)).filter(Boolean);
+  // файли старіші за v4 не мали правила нічного чергування — додаємо стандартне
+  if(!(j.version >= 4) && !out.some(r => r.effects.night)) out.push(normRule(DEFAULT_RULES.rules.find(r => r.id === 'night'), true));
+  return out;
 }
 let BASE_RULES = parseRulesFile(DEFAULT_RULES);
 let USER_RULES = {overrides:{}, custom:[]};
@@ -601,6 +602,7 @@ function hitRules(text){
   }));
 }
 function textCellColor(text){ const r = hitRules(text).find(x => x.effects.cellColor); return r ? r.effects.cellColor : ''; }
+function textIsNight(text){ return hitRules(text).some(r => r.effects.night); }
 function textIsVacation(text){ return hitRules(text).some(r => r.effects.vacation); }
 function textNotShift(text){ return hitRules(text).some(r => !r.effects.countAsShift); }
 // правило-група комірки (крім відпустки): за текстом або за кольором комірки
@@ -1261,6 +1263,8 @@ function renderView(){
 // ---------- Сторінка дня: хто працює у вибраний день ----------
 // «Триніті» визначаємо за текстом (з допуском на одруки) — це працює в обох режимах кольору.
 function isBlackCell(c){ return !!c.rawColor && c.rawColor.toUpperCase() === '#000000'; }
+// нічне чергування: чорна комірка АБО напис за правилом (за замовчуванням «ніч…» / «черг…»)
+function isNightCell(c){ return isBlackCell(c) || textIsNight(c.text); }
 function isVacationCell(c){ return c.color === VACATION_GRAY || textIsVacation(c.text); }
 
 function renderDayPage(){
@@ -1288,7 +1292,7 @@ function renderDayPage(){
     if(!(c.text || c.color)) continue;
     const isFavG = favList.includes(g.doctor.trim().toLowerCase());
     const vac = isVacationCell(c), gr = vac ? null : cellGroupRule(c);
-    const cat = vac ? 'vacation' : gr ? gr.id : isBlackCell(c) ? 'night' : 'day';
+    const cat = vac ? 'vacation' : gr ? gr.id : isNightCell(c) ? 'night' : 'day';
     counts[cat]++; if(isFavG) counts.fav++;                     // лічильники — до фільтрів
     if(q && !g.doctor.toLowerCase().includes(q)) continue;      // пошук за прізвищем
     if(sel.size && !sel.has(cat)) continue;                     // зміна / група (збіг з будь-якою вибраною)
@@ -1296,7 +1300,7 @@ function renderDayPage(){
     if(isFavG && !vac) favs.push({g, c});
     else if(vac) onVacation.push({g, c});
     else if(gr) byGroup[gr.id].push({g, c});
-    else if(isBlackCell(c)) blacks.push({g, c});
+    else if(isNightCell(c)) blacks.push({g, c});
     else others.push({g, c});
   }
   // Усередині групи: однакові кольори йдуть поруч (комірки без кольору — в кінці),
@@ -1333,20 +1337,6 @@ function renderDayPage(){
       const nm = document.createElement('div'); nm.className = 'nm';
       nm.textContent = g.doctor + (g.section ? ' · ' + g.section : '');
       row.appendChild(sw); row.appendChild(nm);
-      const nCnt = notesFor(g.doctor, month, day).length;
-      const isSel = empName(g.doctor) === empName(dayCtx.doctor);
-      if(isSel) row.classList.add('sel');
-      const nb = document.createElement('button'); nb.type = 'button';
-      nb.className = 'empnote' + (nCnt ? ' has' : '');
-      nb.setAttribute('aria-label', 'Помітки: ' + g.doctor + (nCnt ? ' (' + nCnt + ')' : ''));
-      nb.title = nCnt ? 'Поміток: ' + nCnt : 'Додати помітку';
-      nb.innerHTML = ICON_NOTE;
-      nb.addEventListener('click', () => {                       // помітки цього працівника
-        dayCtx.doctor = g.doctor; noteComposerOpen = false;
-        renderDayNotes(); renderDayPage();
-        $('#dayNotes').scrollIntoView({block: 'start', behavior: 'smooth'});
-      });
-      row.appendChild(nb);
       if(c.text){
         const tx = document.createElement('div'); tx.className = 'tx'; tx.textContent = c.text;
         row.appendChild(tx);
@@ -1683,6 +1673,7 @@ function commitRules(){ saveUserRules(); applyRulesChanged(); renderRulesPage();
 function ruleSummary(r){
   const p = [r.effects.countAsShift ? 'Рахується змінами' : 'Не рахується змінами'];
   if(r.effects.vacation) p.push('відпустка (сірий колір)');
+  if(r.effects.night) p.push('нічне чергування (група «Нічна»)');
   if(r.effects.group) p.push('окрема група «' + r.effects.group.label + '»');
   if(r.effects.cellColor) p.push('колір комірки ' + r.effects.cellColor);
   return p.join(' · ') + (r.builtin ? ' · вбудоване' : '');
@@ -1744,6 +1735,9 @@ function ruleCard(r){
       mkEl('input', {type: 'checkbox', checked: c.effects.countAsShift !== false,
         onchange: e => { c.effects.countAsShift = e.target.checked; commitRules(); }}), 'Рахувати як зміну'));
     card.appendChild(mkEl('label', {class: 'rchk'},
+      mkEl('input', {type: 'checkbox', checked: !!c.effects.night,
+        onchange: e => { c.effects.night = e.target.checked; commitRules(); }}), 'Нічне чергування (група «Нічна»)'));
+    card.appendChild(mkEl('label', {class: 'rchk'},
       mkEl('input', {type: 'checkbox', checked: !!c.effects.group,
         onchange: e => { c.effects.group = e.target.checked ? {label: c.name, color: '#6b7a74'} : null; commitRules(); }}), 'Окрема група й фільтр на сторінці дня'));
     if(c.effects.group){
@@ -1785,7 +1779,7 @@ function exportRulesJson(){
     id: r.id, name: r.name, enabled: r.enabled,
     match: r.match.map(m => ({word: m.word, type: m.type})),
     effects: Object.assign({countAsShift: r.effects.countAsShift},
-      r.effects.vacation ? {vacation: true} : {}, r.effects.group ? {group: r.effects.group} : {}, r.effects.cellColor ? {cellColor: r.effects.cellColor} : {})
+      r.effects.vacation ? {vacation: true} : {}, r.effects.night ? {night: true} : {}, r.effects.group ? {group: r.effects.group} : {}, r.effects.cellColor ? {cellColor: r.effects.cellColor} : {})
   }))}, null, 2);
 }
 $('#rulesBtn').addEventListener('click', () => { closeSettings(); openRulesPage(); });
@@ -1807,7 +1801,6 @@ $('#ruleReset').addEventListener('click', async () => {
   if(await appConfirm('Скинути всі ваші зміни правил? Правила з файлу rules.json залишаться.', 'Скинути')){ USER_RULES = {overrides: {}, custom: []}; commitRules(); }
 });
 /* ---- Помітки: екран дня ---- */
-const ICON_NOTE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h14a1 1 0 0 1 1 1v10l-5 5H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z"/><path d="M15 20v-4a1 1 0 0 1 1-1h4"/></svg>';
 const ICON_EDIT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg>';
 const ICON_TRASH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg>';
 function noteTime(ts){ try{ return new Date(ts).toLocaleString('uk-UA', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'}); } catch(err){ return ''; } }
